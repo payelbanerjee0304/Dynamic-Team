@@ -51,6 +51,15 @@
                   <span class="icon_text"> Teams </span>
                 </a>
               </li>
+              
+              <li class="nav-item">
+                <a href="{{route('admin.memberPositionDetails')}}" class="nav-link">
+                  <div class="icon_box">
+                    <img src="{{asset('images/menu3.png')}}" alt="nav_icon1" />
+                  </div>
+                  <span class="icon_text"> Member History </span>
+                </a>
+              </li>
 
               <li class="nav-item dropdown">
                 <a

@@ -8,7 +8,7 @@
           <div class="parent_nav_menu">
             <ul class="pnmul">
               <li class="nav-item">
-                <a href="javascript:void(0);" class="nav-link">
+                <a href="{{ route('positionDetails') }}" class="nav-link">
                   <div class="icon_box">
                     <img src="{{asset('images/menu1.png')}}" alt="nav_icon1" />
                   </div>
@@ -94,9 +94,9 @@
       </div>
       <div class="logo_area">
         <div class="nav_btm_logo">
-          <a href="index.html"
+          {{-- <a href="index.html"
             ><img src="{{asset('images/sidebar_logo.png')}}" alt="logo"
-          /></a>
+          /></a> --}}
         </div>
       </div>
     </div>

@@ -158,7 +158,8 @@ class AdminController extends Controller
             $file = $request->file('image');
             $filename = time() . "_" . $file->getClientOriginalName();
 
-            $uploadLocation = public_path('upload');
+            // $uploadLocation = public_path('upload');
+            $uploadLocation = "./upload";
             $fileSize = $file->getSize();
             
             // $file->move($uploadLocation, $filename);
@@ -178,16 +179,16 @@ class AdminController extends Controller
 
             $localFilePath = $uploadLocation . '/' . $filename;
 
-            $s3BucketFolder = 'southjstimages';
-            $s3FilePath = $s3BucketFolder . '/' . $filename;
-            Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-            $fileLink = Storage::disk('s3')->url($s3FilePath);
-            $newMember->image = $fileLink;
+            // $s3BucketFolder = 'southjstimages';
+            // $s3FilePath = $s3BucketFolder . '/' . $filename;
+            // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+            // $fileLink = Storage::disk('s3')->url($s3FilePath);
+            $newMember->image = $localFilePath;
 
 
-            if (file_exists($localFilePath)) {
-                unlink($localFilePath);
-            }
+            // if (file_exists($localFilePath)) {
+            //     unlink($localFilePath);
+            // }
         }
 
 
@@ -201,9 +202,9 @@ class AdminController extends Controller
 
         $newMember->save();
 
-        if ($newMember->save()) {
-            ActivityLogHelper::log($adminId, 'Member Created', 'Member inserted by ID ' . (string) $adminId);
-        }
+        // if ($newMember->save()) {
+        //     ActivityLogHelper::log($adminId, 'Member Created', 'Member inserted by ID ' . (string) $adminId);
+        // }
 
         return redirect('/admin/view')->with('success', 'Member information inserted successfully.');
     }
@@ -442,7 +443,8 @@ class AdminController extends Controller
                     $file = $request->file('image');
                     $filename = time() . "_" . $file->getClientOriginalName();
 
-                    $uploadLocation = public_path('upload');
+                    // $uploadLocation = public_path('upload');
+                    $uploadLocation = "./upload";
                     $fileSize = $file->getSize();
             
                     // $file->move($uploadLocation, $filename);
@@ -462,16 +464,16 @@ class AdminController extends Controller
 
                     $localFilePath = $uploadLocation . '/' . $filename;
 
-                    $s3BucketFolder = 'southjstimages';
-                    $s3FilePath = $s3BucketFolder . '/' . $filename;
-                    Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-                    $fileLink = Storage::disk('s3')->url($s3FilePath);
-                    $newMember->image = $fileLink;
+                    // $s3BucketFolder = 'southjstimages';
+                    // $s3FilePath = $s3BucketFolder . '/' . $filename;
+                    // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+                    // $fileLink = Storage::disk('s3')->url($s3FilePath);
+                    $newMember->image = $localFilePath;
 
 
-                    if (file_exists($localFilePath)) {
-                        unlink($localFilePath);
-                    }
+                    // if (file_exists($localFilePath)) {
+                    //     unlink($localFilePath);
+                    // }
                 }
 
                 $newMember->PINCODE = $formData['PINCODE'] ?? "";
@@ -487,9 +489,9 @@ class AdminController extends Controller
 
                 $newMember->save();
 
-                if ($newMember->save()) {
-                    ActivityLogHelper::log($adminId, 'Member Details Updated by admin', 'Updated member Details of ID ' . (string) $memberId);
-                }
+                // if ($newMember->save()) {
+                //     ActivityLogHelper::log($adminId, 'Member Details Updated by admin', 'Updated member Details of ID ' . (string) $memberId);
+                // }
 
                 return redirect('/admin/member-view')->with('success', 'Member information updated successfully.');
             } else {

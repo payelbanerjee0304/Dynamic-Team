@@ -42,24 +42,24 @@ class UserController extends Controller
             $getDataOtp = Member::where('Mobile', '=', $mobile)->orWhere('Mobile', '=', (int)$mobile)->get();
 
 
-            $url = "http://bulksms.nkinfo.in/pushsms.php";
+            // $url = "http://bulksms.nkinfo.in/pushsms.php";
 
-            // Prepare the query parameters
-            $params = [
-                'username' => 'SouthSabha',
-                'api_password' => 'ac54bqbi852p0dpxf',
-                'sender' => 'SABHAK',
-                'to' => $mobile,
-                // 'group' => '',
-                'message' => "{$otp} is the One Time Password (OTP) for your login. Please do not share with anyone.SOUTH CALCUTTA SHRI JAIN SWETAMBER TERAPANTHI SABHA",
-                // 'unicode' => 1,
-                'priority' => '11',
-                'e_id' => '1101421070000082837',
-                't_id' => '1107173045874845435'
-            ];
+            // // Prepare the query parameters
+            // $params = [
+            //     'username' => 'SouthSabha',
+            //     'api_password' => 'ac54bqbi852p0dpxf',
+            //     'sender' => 'SABHAK',
+            //     'to' => $mobile,
+            //     // 'group' => '',
+            //     'message' => "{$otp} is the One Time Password (OTP) for your login. Please do not share with anyone.SOUTH CALCUTTA SHRI JAIN SWETAMBER TERAPANTHI SABHA",
+            //     // 'unicode' => 1,
+            //     'priority' => '11',
+            //     'e_id' => '1101421070000082837',
+            //     't_id' => '1107173045874845435'
+            // ];
 
-            // Send the request
-            $response = Http::get($url, $params);
+            // // Send the request
+            // $response = Http::get($url, $params);
             // print_r($response);die;
 
             return response($getDataOtp);
@@ -194,7 +194,8 @@ class UserController extends Controller
                     $file = $request->file('image');
                     $filename = time() . "_" . $file->getClientOriginalName();
 
-                    $uploadLocation = public_path('upload');
+                    // $uploadLocation = public_path('upload');
+                    $uploadLocation = "./upload";
                     $fileSize = $file->getSize();
             
                     // $file->move($uploadLocation, $filename);
@@ -214,16 +215,16 @@ class UserController extends Controller
 
                     $localFilePath = $uploadLocation . '/' . $filename;
 
-                    $s3BucketFolder = 'southjstimages';
-                    $s3FilePath = $s3BucketFolder . '/' . $filename;
-                    Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-                    $fileLink = Storage::disk('s3')->url($s3FilePath);
-                    $newMember->image = $fileLink;
+                    // $s3BucketFolder = 'southjstimages';
+                    // $s3FilePath = $s3BucketFolder . '/' . $filename;
+                    // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+                    // $fileLink = Storage::disk('s3')->url($s3FilePath);
+                    $newMember->image = $localFilePath;
 
 
-                    if (file_exists($localFilePath)) {
-                        unlink($localFilePath);
-                    }
+                    // if (file_exists($localFilePath)) {
+                    //     unlink($localFilePath);
+                    // }
                 }
 
 
@@ -238,7 +239,7 @@ class UserController extends Controller
 
                 $newMember->save();
 
-                ActivityLogHelper::log($userId, 'Member Details Updated', 'Member updated Details with ID ' . (string) $userId);
+                // ActivityLogHelper::log($userId, 'Member Details Updated', 'Member updated Details with ID ' . (string) $userId);
 
                 if ($newMember->save()) {
                     $request->session()->forget('user_id');

@@ -24,7 +24,7 @@
         <div class="see_nwss">
             <h1>Position History</h1>
             <div class="c-nws">
-                {{-- <a href="{{ route('admin.downloadPositionHistory') }}" class="mmbr_list_right_anch">Download</a> --}}
+                <a href="{{ route('admin.downloadPositionHistory') }}" class="mmbr_list_right_anch">Download</a>
             </div>
         </div>
 

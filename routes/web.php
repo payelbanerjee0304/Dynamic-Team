@@ -131,6 +131,7 @@ Route::middleware(['userLoggedIn'])->group(function () {
    Route::get('/news-details/{newsId}', [NewsUserController::class, 'newsDetails'])->name('user.newsDetails');
 
    Route::get('/see-all-birthdays', [BirthdayUserController::class, 'seeAllBirthdays'])->name('seeAllBirthdays');
+   Route::get('/check-positions', [TeamUserController::class, 'positionDetails'])->name('positionDetails');
 });
 Route::get('/view', [UserController::class, 'view'])->name('view');
 
