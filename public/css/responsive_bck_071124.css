@@ -1,0 +1,339 @@
+@media (max-width: 1920px) {
+}
+
+@media (max-width: 1680px) {
+  .container {
+    max-width: 1450px;
+  }
+
+  html {
+    font-size: 53%;
+  }
+  .login-form .sbmt_btn input {
+    font-size: 15px;
+    padding: 8px 0;
+  }
+}
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1440px) {
+  .container {
+    max-width: 1340px;
+  }
+
+  html {
+    font-size: 47%;
+  }
+  .lgin_ftr p,
+  .lgin_ftr a {
+    font-size: 16px;
+  }
+  .lgin_ftr {
+    margin-top: 20px;
+  }
+  .jst_login .d_brd_tp h3 {
+    font-size: 28px;
+  }
+}
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1366px) {
+  .container {
+    max-width: 1240px;
+  }
+  .south_jst {
+    padding-inline: 36rem;
+  }
+  .login-form .sbmt_btn input {
+    width: 60%;
+  }
+  .login-form .form_control input {
+    width: 90%;
+  }
+  .login-form .sbmt_btn input {
+    margin-top: 10px;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1280px) {
+  .container {
+    max-width: 1140px;
+  }
+
+  html {
+    font-size: 42%;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1199px) {
+  .container {
+    max-width: 100%;
+    padding-inline: 20px;
+  }
+  .south_jst {
+    padding-inline: 26rem;
+  }
+}
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1080px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 1024px) {
+  .south_jst {
+    padding-inline: 15rem;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 991px) {
+  .login-part {
+    width: 60%;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 900px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 840px) {
+  .south_jst {
+    padding-inline: 0;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 768px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 767px) {
+  /* Responsive NavBar */
+
+  header .navbar {
+    position: static;
+  }
+
+  header .navbar-toggler {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 20px;
+    border: none;
+  }
+
+  header .navbar-toggler:focus {
+    box-shadow: none;
+    outline: none;
+    border: none;
+  }
+
+  .MenuBar {
+    font-size: 20px;
+    display: inline-block;
+    fill: #fff;
+  }
+
+  header .navbar-collapse {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: coral;
+  }
+
+  header .navMenus {
+    padding: 20px 0;
+  }
+
+  /* Responsive NavBar End*/
+  .btn_frm {
+    display: block;
+    text-align: center;
+  }
+  .login-part {
+    width: 70%;
+  }
+  .login-form {
+    margin-top: 20px;
+  }
+  .logo img {
+    width: auto;
+    height: auto;
+  }
+  /* .logo {
+    width: auto;
+    height: auto;
+  } */
+  .top_hdr {
+    padding: 10px;
+  }
+  /* ayon paul start / 06.11.2024 */
+  .frm_d_div.add_form.nw_ad_frm .frm_row{
+    width: 32%;
+  }
+  /* ayon paul end / 06.11.2024 */
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 667px) {
+    /* ayon paul start / 06.11.2024 */
+    .frm_d_div.add_form.nw_ad_frm .frm_row{
+      width: 100%;
+    }
+    .frm_d_div.add_form.nw_ad_frm{
+      gap: 0;
+    }
+    /* ayon paul end / 06.11.2024 */
+  
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 600px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 575px) {
+  /* m 30.9.24 */
+  /* .logo {
+    width: 14.1rem;
+    height: 11.1rem;
+  }
+  .logo {
+    width: auto;
+    height: auto;
+  } */
+  .top_hdr {
+    gap: 10px;
+  }
+  .south_jst {
+    padding: 2rem 0;
+  }
+  .mul_form {
+    border: 3px solid #fff;
+    margin-top: 20px;
+  }
+  .multi_top_dir {
+    margin-top: -15px;
+  }
+  .progress_bar {
+    margin-block: 20px 15px;
+  }
+  .num_div {
+    width: 30px;
+    height: 30px;
+  }
+  .line_span {
+    height: 7px;
+    width: 15%;
+  }
+  .frm_row label {
+    margin-bottom: 4px;
+  }
+  .frm_row {
+    margin-bottom: 10px;
+  }
+  .check span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .frm_row input,
+  .frm_row textarea {
+    padding: 10px;
+  }
+  .login-part {
+    width: 90%;
+  }
+  .login-form .form_control input {
+    width: 100%;
+  }
+  .top_h h2 {
+    font-size: 16px;
+  }
+  .jst_login .d_brd_tp p,
+  .jst_login .d_brd_tp a {
+    font-size: 14px;
+  }
+  .tp_dgt_prt h6 {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  .lgin_ftr p,
+  .lgin_ftr a {
+    font-size: 14px;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 484px) {
+  .logo {
+    width: 50%;
+    height: 50%;
+    margin: auto;
+  }
+  .logo img {
+    margin: auto;
+  }
+  .mul_form {
+    margin-top: 30px;
+  }
+  #submitBtn {
+    margin-top: 15px;
+  }
+  .cmn_btn#submitBtn {
+    padding: 10px 40px;
+  }
+  .jst_login .d_brd_tp h3 {
+    font-size: 22px;
+  }
+  .top_hdr {
+    display: block;
+  }
+  .top_h h2 {
+    text-align: center;
+    margin-top: 10px;
+  }
+  .logo img {
+    width: 30%;
+  }
+  .top_h h2 {
+    font-size: 15px;
+  }
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 430px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 390px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 375px) {
+}
+
+/*** ==================<<<<<>>>>>================== ***/
+
+@media (max-width: 360px) {
+}
