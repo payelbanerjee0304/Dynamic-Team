@@ -31,6 +31,7 @@
                             <input type="text" id="dateRange" name="dateRange" placeholder="dd-mm-yyyy to dd-mm-yyyy" />
                             <small class="error-message" id="tenure_error"></small>
                         </div>
+   
                         {{-- <div class="frm_row">
                             <label>CEO (Level 1)</label>
                             <div class="dsgtotl">
@@ -141,4 +142,6 @@
       });
     });
 </script>
+
+
 @endsection

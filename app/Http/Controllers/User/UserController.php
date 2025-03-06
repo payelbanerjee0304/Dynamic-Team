@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Session;
 use App\Helpers\ActivityLogHelper;
 use Illuminate\Support\Facades\Http;
 use Intervention\Image\Facades\Image;
+use Carbon\Carbon;
 
 use App\Models\Member;
 
@@ -103,6 +104,16 @@ class UserController extends Controller
     {
         $userId = Session::get('user_id');
         $member = Member::where('_id', $userId)->first();
+
+        if (isset($member['DOB']) && $member['DOB'] != "") {
+            $member['DOB'] = date('Y-m-d', strtotime($member['DOB']));
+        }
+
+        if (isset($member['DOM']) && $member['DOM'] != "") {
+
+            $member['DOM'] = date('Y-m-d', strtotime($member['DOM']));
+        }
+        
         return view('user.editMember', compact('member'));
     }
 
@@ -130,7 +141,7 @@ class UserController extends Controller
                 $newMember->hasTerapanthCard = $formData['hasTerapanthCard'] ?? "";
 
 
-                $newMember->DOB = $formData['DOB'] ?? "";
+                $newMember->DOB = (int) Carbon::createFromFormat('Y-m-d', $formData['DOB'])->format('Ymd') ?? "";
                 $newMember->age = $formData['age'] ?? "";
                 $newMember->DOM = $formData['DOM'] ?? "";
                 $newMember->bloodGroup = $formData['bloodGroup'] ?? "";
@@ -194,8 +205,7 @@ class UserController extends Controller
                     $file = $request->file('image');
                     $filename = time() . "_" . $file->getClientOriginalName();
 
-                    // $uploadLocation = public_path('upload');
-                    $uploadLocation = "./upload";
+                    $uploadLocation = public_path('upload');
                     $fileSize = $file->getSize();
             
                     // $file->move($uploadLocation, $filename);
@@ -215,16 +225,16 @@ class UserController extends Controller
 
                     $localFilePath = $uploadLocation . '/' . $filename;
 
-                    // $s3BucketFolder = 'southjstimages';
-                    // $s3FilePath = $s3BucketFolder . '/' . $filename;
-                    // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-                    // $fileLink = Storage::disk('s3')->url($s3FilePath);
-                    $newMember->image = $localFilePath;
+                    $s3BucketFolder = 'southjstimages';
+                    $s3FilePath = $s3BucketFolder . '/' . $filename;
+                    Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+                    $fileLink = Storage::disk('s3')->url($s3FilePath);
+                    $newMember->image = $fileLink;
 
 
-                    // if (file_exists($localFilePath)) {
-                    //     unlink($localFilePath);
-                    // }
+                    if (file_exists($localFilePath)) {
+                        unlink($localFilePath);
+                    }
                 }
 
 
@@ -239,7 +249,7 @@ class UserController extends Controller
 
                 $newMember->save();
 
-                // ActivityLogHelper::log($userId, 'Member Details Updated', 'Member updated Details with ID ' . (string) $userId);
+                ActivityLogHelper::log($userId, 'Member Details Updated', 'Member updated Details with ID ' . (string) $userId);
 
                 if ($newMember->save()) {
                     $request->session()->forget('user_id');

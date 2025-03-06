@@ -55,6 +55,8 @@ class Kernel extends HttpKernel
     protected $middlewareAliases = [
         'adminLoggedIn' => \App\Http\Middleware\AdminLogin::class,
         'admin.redirect' => \App\Http\Middleware\AdminRedirectMiddleware::class,
+        'chiefadminLoggedIn' => \App\Http\Middleware\ChiefadminLogin::class,
+        'chiefadmin.redirect' => \App\Http\Middleware\ChiefadminRedirectMiddleware::class,
         'userLoggedIn' => \App\Http\Middleware\UserLogin::class,
         'user.redirect' => \App\Http\Middleware\UserRedirectMiddleware::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
@@ -69,4 +71,9 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
     ];
+
+    protected function schedule(Schedule $schedule)
+    {
+        $schedule->command('notify:birthday')->dailyAt('00:00'); // Run at 12:00 AM
+    }
 }

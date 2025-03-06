@@ -29,12 +29,10 @@
                 <div class="mul_form">
                     <div class="multi_top_dir">Thank You</div>
                     <a href="{{route('allMember')}}"><button class="btn btn-secondary">Back</button></a>
-                    <a href="{{route('admin.logout')}}"><button class="btn btn-info">Logout</button></a>
+                    {{-- <a href="{{route('admin.logout')}}"><button class="btn btn-info">Logout</button></a> --}}
                     <div class="progress_bar" style="color: red">
                         Member Details Submitted Successfully
                     </div>
-
-                    
 
                 </div>
             </div>

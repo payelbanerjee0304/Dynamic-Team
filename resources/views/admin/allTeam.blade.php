@@ -29,35 +29,44 @@
                         @if($allTeam->isNotEmpty())
                             @foreach ($allTeam as $all)
                             <tr>
-                            <td class="team">{{ $all['teamName'] }}</td>
-                            <td  class="tnur">{{ $all['tenure'] }}</td>
-                            <td  class="grop"> 
-                                    <a href="{{route('admin.allGroup', ['id' => $all['_id']])}}" class="ano-page">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
+                                <td class="team">{{ $all['teamName'] }}</td>
+                                <td  class="tnur">{{ $all['tenure'] }}</td>
+                                <td  class="grop"> 
+                                        <a href="{{route('admin.allGroup', ['id' => $all['_id']])}}" class="ano-page">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
                                 </td>
-                            <td class="actn">  <div class="drv_tbl_icns dropdown">
+                                <td class="actn"> 
+                                    <div class="drv_tbl_icns dropdown">
                                         <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                             <i class="fa fa-sort-up"></i>
                                         </button>
                                         <ul class="dropdown-menu">
                                             <li>
-                                            <button class="dpdn_btn_icns pen">
-                                                <a href="{{route('admin.editTeamDetails', ['id' => $all['_id']])}}">
-                                                    Edit
-                                                </a>
-                                            </button>
+                                                <button class="dpdn_btn_icns pen">
+                                                    <a href="{{route('admin.editTeamDetails', ['id' => $all['_id']])}}">
+                                                        Edit
+                                                    </a>
+                                                </button>
                                             </li>
                                             <li>
-                                            <button class="dpdn_btn_icns trash">
-                                                <a href="javascript:void(0);"  onclick="confirmDelete('{{ $all['_id'] }}')">
-                                                Delete
-                                                </a>
-                                            </button>
+                                                <button class="dpdn_btn_icns trash">
+                                                    <a href="javascript:void(0);"  onclick="confirmDelete('{{ $all['_id'] }}')">
+                                                        Delete
+                                                    </a>
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="dpdn_btn_icns pen">
+                                                    <a href="{{route('admin.teamClonePage', ['id' => $all['_id']])}}">
+                                                        Clone
+                                                    </a>
+                                                </button>
                                             </li>
                                         </ul>
-                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             @endforeach
                         @else

@@ -4,7 +4,12 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>FLEXIFORMS PRO</title>
+  <title>SOUTH CALCUTTA</title>
+  {{-- @php
+      $adminId = Session::get('admin_id');
+      $admin = $adminId ? App\Models\Admin::where('_id', $adminId)->first() : null;
+  @endphp
+  <title>{!! $admin ? $admin->name : 'Default Name' !!}</title> --}}
   <meta name="description" content="" />
   <meta name="author" content="admin" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -36,13 +41,19 @@
               <img src="{{asset('images/mnu_icn.png')}}" alt="menu_icon" />
             </div>
             <div class="top_hdr">
+              {{-- @php
+                  $adminId = Session::get('admin_id');
+                  $admin = $adminId ? App\Models\Admin::where('_id', $adminId)->first() : null;
+              @endphp --}}
               <div class="logo">
-                {{-- <img src="{{asset('images/logo.png')}}" /> --}}
+                <img src="{{asset('images/logo.png')}}" />
+                {{-- <img src="{{$admin->headerLogo}}" alt="logo"> --}}
               </div>
               <div class="top_h">
                 <h2>
-                  flexiForms Pro<br />
-                  Reflects seamless team building and form integration
+                  south calcutta<br />
+                  sri jain swetamber terapanthi sabha
+                  {{-- {!! $admin ? $admin->name : 'Default Name' !!} --}}
                 </h2>
               </div>
             </div>
@@ -92,6 +103,7 @@
     </section>
   </main>
   @yield('customJs')
+  {{-- @livewireScripts --}}
 
   <!-- <main>
      

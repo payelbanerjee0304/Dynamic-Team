@@ -7,8 +7,10 @@ use Illuminate\Http\Request;
 use App\Helpers\ActivityLogHelper;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 
 use MongoDB\BSON\ObjectId;
+use Carbon\Carbon;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -17,8 +19,13 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\Admin;
 use App\Models\Member;
 use App\Models\MemberTest;
+use App\Models\Event;
+use App\Models\Team;
+use App\Models\MemberHistory;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
+
+use Barryvdh\Snappy\Facades\SnappyPdf as PDF;
 
 class AdminController extends Controller
 {
@@ -72,6 +79,11 @@ class AdminController extends Controller
         return redirect('admin/login')->with('message', 'Logout successfully');
     }
 
+    public function view()
+    {
+        return view('admin.view');
+    }
+
     public function addMember()
     {
         // echo "hi";die;
@@ -98,7 +110,7 @@ class AdminController extends Controller
         $newMember->hasTerapanthCard = $formData['hasTerapanthCard'] ?? "";
 
 
-        $newMember->DOB = $formData['DOB'] ?? "";
+        $newMember->DOB = (int) Carbon::createFromFormat('Y-m-d', $formData['DOB'])->format('Ymd') ?? "";
         $newMember->age = $formData['age'] ?? "";
         $newMember->DOM = $formData['DOM'] ?? "";
         $newMember->bloodGroup = $formData['bloodGroup'] ?? "";
@@ -158,8 +170,7 @@ class AdminController extends Controller
             $file = $request->file('image');
             $filename = time() . "_" . $file->getClientOriginalName();
 
-            // $uploadLocation = public_path('upload');
-            $uploadLocation = "./upload";
+            $uploadLocation = public_path('upload');
             $fileSize = $file->getSize();
             
             // $file->move($uploadLocation, $filename);
@@ -176,22 +187,19 @@ class AdminController extends Controller
                 $file->move($uploadLocation, $filename);
             }
 
-
             $localFilePath = $uploadLocation . '/' . $filename;
 
-            // $s3BucketFolder = 'southjstimages';
-            // $s3FilePath = $s3BucketFolder . '/' . $filename;
-            // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-            // $fileLink = Storage::disk('s3')->url($s3FilePath);
-            $newMember->image = $localFilePath;
+            $s3BucketFolder = 'southjstimages';
+            $s3FilePath = $s3BucketFolder . '/' . $filename;
+            Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+            $fileLink = Storage::disk('s3')->url($s3FilePath);
+            $newMember->image = $fileLink;
 
 
-            // if (file_exists($localFilePath)) {
-            //     unlink($localFilePath);
-            // }
+            if (file_exists($localFilePath)) {
+                unlink($localFilePath);
+            }
         }
-
-
 
         $newMember->PINCODE = $formData['PINCODE'] ?? "";
         $newMember->Deals_In = $formData['Deals_In'] ?? "";
@@ -199,38 +207,159 @@ class AdminController extends Controller
         $newMember->Mobile_O = $formData['Mobile_O'] ?? "";
         // $newMember->businessFaxNo = $formData['businessFaxNo'] ?? "";
         $newMember->Email_O = $formData['Email_O'] ?? "";
+        $newMember->adminId = $adminId;
 
         $newMember->save();
 
-        // if ($newMember->save()) {
-        //     ActivityLogHelper::log($adminId, 'Member Created', 'Member inserted by ID ' . (string) $adminId);
-        // }
+        if ($newMember->save()) {
+            ActivityLogHelper::log($adminId, 'Member Created', 'Member inserted by ID ' . (string) $adminId);
+        }
 
         return redirect('/admin/view')->with('success', 'Member information inserted successfully.');
     }
 
+    public function generatePdf(Request $request)
+    {
+        $adminId = Session::get('admin_id');
+
+        // print_r("coming soon");die;
+        // Retrieve the member ID from the request
+        $memberId = $request->input('memberId');
+        
+        // Fetch the member from the database
+        $member = Member::where('adminId','=',$adminId)->find($memberId);
+
+        // Check if the member exists
+        if (!$member) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        // Prepare the data to be passed to the view
+        $data = [
+            'name' => $member->Name,
+            'middle_name' => $member->Middle_Name,
+            'surname' => $member->Surname,
+            // 'mobile' => $member->Mobile,
+            // 'membership_type' => $member->Members_Type,
+        ];
+
+        // Load the view and pass the data
+        $pdf = PDF::loadView('pdf.memberDetails', $data);
+
+        // Save the PDF to a specific location
+        $fileName = 'member_' . $memberId . '.pdf';
+        $localFilePath = storage_path('app/public/' . $fileName);
+        $pdf->save($localFilePath);
+
+        // Upload PDF to S3
+        $s3BucketFolder = 'southjstimages';
+        $s3FilePath = $s3BucketFolder . '/' . $fileName;
+        Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+
+        // Generate S3 public URL
+        $fileLink = Storage::disk('s3')->url($s3FilePath);
+
+        // Remove local file
+        if (file_exists($localFilePath)) {
+            unlink($localFilePath);
+        }
+
+        // Return a response with the PDF URL
+        return response()->json([
+            'success' => true,
+            'pdf_url' => $fileLink,
+        ]);
+    }
+
+    public function generateMemberPdf(Request $request)
+    {
+        $adminId = Session::get('admin_id');
+
+        $memberId = $request->input('memberId');
+        $member = Member::where('adminId','=',$adminId)->find($memberId);
+
+        if (!$member) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $data = [
+            'Members_Type' => $member->Members_Type ?? '',
+            'Membership_No' => $member->Membership_No ?? '',
+            'Surname' => $member->Surname ?? '',
+            'Name' => $member->Name ?? '',
+            'Middle_Name' => $member->Middle_Name ?? '',
+            'Son_Daughter_of' => $member->Son_Daughter_of ?? '',
+            'Residence1' => $member->Residence1 ?? '',
+            'Residence2' => $member->Residence2 ?? '',
+            'Residence3' => $member->Residence3 ?? '',
+            'Residence4' => $member->Residence4 ?? '',
+            'Res_PINCODE' => $member->Res_PINCODE ?? '',
+            'Phone' => $member->Phone ?? '',
+            'Mobile' => $member->Mobile ?? '',
+            'Email_ID' => $member->Email_ID ?? '',
+            'Office_1' => $member->Office_1 ?? '',
+            'Office_2' => $member->Office_2 ?? '',
+            'Office_3' => $member->Office_3 ?? '',
+            'Office_4' => $member->Office_4 ?? '',
+            'PINCODE' => $member->PINCODE ?? '',
+            'Phone_O' => $member->Phone_O ?? '',
+            'Mobile_O' => $member->Mobile_O ?? '',
+            'Email_ID_O' => $member->Email_ID_O ?? '',
+            'Qualification' => $member->Qualification ?? '',
+            'Occupation' => $member->Occupation ?? '',
+            'Deals_In' => $member->Deals_In ?? '',
+            'DOB' => $member->DOB ?? '',
+            'DOM' => $member->DOM ?? '',
+            'Spouse' => $member->Spouse ?? '',
+            'Native_Place' => $member->Native_Place ?? '',
+            'age' => $member->age ?? '',
+            'alternateNumber' => $member->alternateNumber ?? '',
+            'bloodGroup' => $member->bloodGroup ?? '',
+            'businessFaxNo' => $member->businessFaxNo ?? '',
+            'businessName' => $member->businessName ?? '',
+            'familyDetails' => $member->familyDetails ?? '',
+            'isVerified' => $member->isVerified ?? '',
+            'image' => $member->image ?? '',
+        ];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $data["familyMember{$i}Name"] = $member["familyMember{$i}Name"] ?? '';
+            $data["familyMember{$i}Phone"] = $member["familyMember{$i}Phone"] ?? '';
+            $data["familyMember{$i}Relation"] = $member["familyMember{$i}Relation"] ?? '';
+        }
+
+        $pdf = PDF::loadView('pdf.memberDetails', $data);
+
+        return $pdf->download("member_{$memberId}.pdf");
+    }
+
     public function allMembers(Request $request)
     {
-        $allCount = Member::where('isDeleted', '!=', true)->count();
-        $founderCount = Member::where('Members_Type', 'FOUNDER')->where('isDeleted', '!=', true)->count();
-        $patronCount = Member::where('Members_Type', 'PATRON')->where('isDeleted', '!=', true)->count();
-        $lifeCount = Member::where('Members_Type', 'LIFE')->where('isDeleted', '!=', true)->count();
+        $adminId = Session::get('admin_id');
 
-        $verifiedCount = Member::where('isVerified', 'Yes')->where('isDeleted', '!=', true)->count();
+        $allCount = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)->count();
+        $founderCount = Member::where('adminId','=',$adminId)->where('Members_Type', 'FOUNDER')->where('isDeleted', '!=', true)->count();
+        $patronCount = Member::where('adminId','=',$adminId)->where('Members_Type', 'PATRON')->where('isDeleted', '!=', true)->count();
+        $lifeCount = Member::where('adminId','=',$adminId)->where('Members_Type', 'LIFE')->where('isDeleted', '!=', true)->count();
+
+        $verifiedCount = Member::where('adminId','=',$adminId)->where('isVerified', 'Yes')->where('isDeleted', '!=', true)->count();
+        $reverifiedCount = Member::where('isVerified', 'reverified')->where('isDeleted', '!=', true)->count();
 
         $paginateInput = $request->input('paginateInput', 20);
-        $members = Member::where('isDeleted', '!=', true)
+        $members = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)
             ->orderBy('Name', 'asc')
             ->orderBy('Middle_Name', 'asc')
             ->orderBy('Surname', 'asc')
             ->paginate($paginateInput);
-        return view('admin.membersView', compact('members', 'paginateInput', 'allCount', 'founderCount', 'patronCount', 'lifeCount', 'verifiedCount'));
+        return view('admin.membersView', compact('members', 'paginateInput', 'allCount', 'founderCount', 'patronCount', 'lifeCount', 'verifiedCount','reverifiedCount'));
     }
 
     public function paginateMember(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $paginateInput = $request->input('paginateInput', 20);
-        $members = Member::where('isDeleted', '!=', true)
+        $members = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)
             ->orderBy('Name', 'asc')
             ->orderBy('Middle_Name', 'asc')
             ->orderBy('Surname', 'asc')
@@ -240,6 +369,9 @@ class AdminController extends Controller
 
     public function searchMember(Request $request)
     {
+        $adminId = Session::get('admin_id');
+        // echo "$adminId";die;
+
         $paginateInput = $request->input('paginateInput', 20);
         $keyword = $request->input('keyword');
         $members = Member::where('Name', 'LIKE', "{$keyword}%")
@@ -255,6 +387,7 @@ class AdminController extends Controller
                 ]
             ])
             ->where('isDeleted', '!=', true)
+            ->where('adminId','=',$adminId)
             ->orderBy('Name', 'asc')
             ->orderBy('Middle_Name', 'asc')
             ->orderBy('Surname', 'asc')
@@ -265,10 +398,12 @@ class AdminController extends Controller
 
     public function suggestMembers(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $keyword = $request->input('keyword');
 
         // Retrieve members with full name, excluding deleted members, and matching the keyword
-        $suggestions = Member::where(function ($query) use ($keyword) {
+        $suggestions = Member::where('adminId','=',$adminId)->where(function ($query) use ($keyword) {
             $query->where('Name', 'LIKE', "{$keyword}%")
                 ->orWhere('Surname', 'LIKE', "{$keyword}%")
                 ->orWhere('Middle_Name', 'LIKE', "{$keyword}%")
@@ -304,6 +439,8 @@ class AdminController extends Controller
 
     public function searchKeywordMember(Request $request)
     {
+        $adminId = Session::get('admin_id');
+        
         $paginateInput = $request->input('paginateInput', 20);
         $selectedId = $request->input('selectedId');
         // print_r($keyword);die;
@@ -312,7 +449,7 @@ class AdminController extends Controller
         // $name = $nameParts[0] ?? '';            // First part as Name
         // $middleName = $nameParts[1] ?? '';       // Second part as Middle_Name (if available)
         // $surname = isset($nameParts[2]) ? implode(' ', array_slice($nameParts, 2)) : '';
-        $members = Member::where('_id', $selectedId)
+        $members = Member::where('adminId','=',$adminId)->where('_id', $selectedId)
             //  ->where('Middle_Name', $middleName)
             //  ->where('Surname', $surname)
             ->where('isDeleted', '!=', true)
@@ -324,9 +461,11 @@ class AdminController extends Controller
 
     public function filterMember(Request $request)
     {
+        $adminId = Session::get('admin_id');
+        
         $membersType = $request->input('membersType', 'all');
         $paginateInput = $request->input('paginateInput', 20);
-        $query = Member::where('isDeleted', '!=', true)
+        $query = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)
             ->orderBy('Name', 'asc')
             ->orderBy('Middle_Name', 'asc')
             ->orderBy('Surname', 'asc');
@@ -338,10 +477,12 @@ class AdminController extends Controller
         $members = $query->paginate($paginateInput);
         return view('admin.membersView_search', compact('members', 'paginateInput'))->render();
     }
-
+    
     public function editMember($id)
     {
-        $member = Member::where('_id', $id)->first();
+        $adminId = Session::get('admin_id');
+
+        $member = Member::where('adminId','=',$adminId)->where('_id', $id)->first();
 
         if (isset($member['DOB']) && $member['DOB'] != "") {
             $member['DOB'] = date('Y-m-d', strtotime($member['DOB']));
@@ -364,7 +505,7 @@ class AdminController extends Controller
 
         if ($memberId) {
             // Assuming you have a Member model, retrieve the member and update their information
-            $newMember = Member::find($memberId);
+            $newMember = Member::where('adminId','=',$adminId)->find($memberId);
             // print_r($memberId);die;
 
             if ($newMember) {
@@ -379,7 +520,7 @@ class AdminController extends Controller
                 $newMember->hasTerapanthCard = $formData['hasTerapanthCard'] ?? "";
 
 
-                $newMember->DOB = $formData['DOB'] ?? "";
+                $newMember->DOB = (int) Carbon::createFromFormat('Y-m-d', $formData['DOB'])->format('Ymd') ?? "";
                 $newMember->age = $formData['age'] ?? "";
                 $newMember->DOM = $formData['DOM'] ?? "";
                 $newMember->bloodGroup = $formData['bloodGroup'] ?? "";
@@ -443,8 +584,7 @@ class AdminController extends Controller
                     $file = $request->file('image');
                     $filename = time() . "_" . $file->getClientOriginalName();
 
-                    // $uploadLocation = public_path('upload');
-                    $uploadLocation = "./upload";
+                    $uploadLocation = public_path('upload');
                     $fileSize = $file->getSize();
             
                     // $file->move($uploadLocation, $filename);
@@ -464,16 +604,16 @@ class AdminController extends Controller
 
                     $localFilePath = $uploadLocation . '/' . $filename;
 
-                    // $s3BucketFolder = 'southjstimages';
-                    // $s3FilePath = $s3BucketFolder . '/' . $filename;
-                    // Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
-                    // $fileLink = Storage::disk('s3')->url($s3FilePath);
-                    $newMember->image = $localFilePath;
+                    $s3BucketFolder = 'southjstimages';
+                    $s3FilePath = $s3BucketFolder . '/' . $filename;
+                    Storage::disk('s3')->put($s3FilePath, file_get_contents($localFilePath));
+                    $fileLink = Storage::disk('s3')->url($s3FilePath);
+                    $newMember->image = $fileLink;
 
 
-                    // if (file_exists($localFilePath)) {
-                    //     unlink($localFilePath);
-                    // }
+                    if (file_exists($localFilePath)) {
+                        unlink($localFilePath);
+                    }
                 }
 
                 $newMember->PINCODE = $formData['PINCODE'] ?? "";
@@ -489,9 +629,9 @@ class AdminController extends Controller
 
                 $newMember->save();
 
-                // if ($newMember->save()) {
-                //     ActivityLogHelper::log($adminId, 'Member Details Updated by admin', 'Updated member Details of ID ' . (string) $memberId);
-                // }
+                if ($newMember->save()) {
+                    ActivityLogHelper::log($adminId, 'Member Details Updated by admin', 'Updated member Details of ID ' . (string) $memberId);
+                }
 
                 return redirect('/admin/member-view')->with('success', 'Member information updated successfully.');
             } else {
@@ -504,43 +644,130 @@ class AdminController extends Controller
 
     public function deleteMember(Request $request)
     {
-        $member = Member::find($request->id);
+        $adminId = Session::get('admin_id');
+        $memberId = $request->id;
+
+        $member = Member::where('adminId','=',$adminId)->find($request->id);
         // print_r($member);die;
         if ($member) {
             // $member->delete();
+            
             $member->isDeleted = true;
             $member->save();
+
+            // Remove the user ID from interestedMembers array
+            Event::where('interestedMembers', $request->id)
+            ->update([
+                '$pull' => ['interestedMembers' => $request->id] 
+            ]);
+
+            // If interestedMembers is now empty, remove the field completely
+            Event::whereRaw([
+                'interestedMembers' => ['$exists' => true, '$size' => 0]
+            ])->update([
+                '$unset' => ['interestedMembers' => ""]
+            ]);
+
+            // Remove member from Teams' groupDetails dynamically
+            $teams = Team::where('groupDetails', 'exists', true)->get();
+
+            foreach ($teams as $team) {
+                $updatedGroupDetails = $team->groupDetails;
+
+                foreach ($updatedGroupDetails as &$group) {
+                    foreach ($group as $key => &$roleArray) {
+                        // Skip 'maxAssignedMembers' to avoid modifying it
+                        if ($key === 'maxAssignedMembers') {
+                            continue;
+                        }
+                
+                        // Check if the key holds an array of members
+                        if (is_array($roleArray)) {
+                            $roleArray = array_filter($roleArray, function ($member) use ($memberId) {
+                                // Safely check for 'memberId' and filter out matching member
+                                return is_array($member) && isset($member['memberId']) && $member['memberId'] !== $memberId;
+                            });
+
+                            // Reindex the array after filtering
+                            $roleArray = array_values($roleArray);
+                        }
+                    }
+                }
+
+                // Save the updated team
+                $team->groupDetails = $updatedGroupDetails;
+                $team->save();
+            }
+
+            // Update MemberHistory: Set positionEndDate to today if it's in the future
+            $today = Carbon::now()->format('Ymd'); // YYYYMMDD format
+
+            $memberHistory = MemberHistory::where('memberId', $memberId)->first();
+
+            if ($memberHistory && isset($memberHistory->history)) {
+                $updatedHistory = [];
+
+                foreach ($memberHistory->history as $entry) {
+                    if (isset($entry['positionEndDate']) && $entry['positionEndDate'] > $today) {
+                        // Update positionEndDate if it's greater than today
+                        $entry['positionEndDate'] = (int)$today;
+                    }
+                    $updatedHistory[] = $entry;
+                }
+
+                // Save updated history
+                $memberHistory->history = $updatedHistory;
+                $memberHistory->save();
+            }
+
             return response()->json(['success' => 'Member deleted successfully.']);
         } else {
             return response()->json(['error' => 'Member not found.'], 404);
         }
     }
 
+    public function reverifyMember($id)
+    {
+        $member = $newMember = Member::find($id);;
+        // print_r($member);die;
+    
+        if ($member) {
+            $member->isVerified = "reverified";
+            $member->save();
+
+            return redirect()->back()->with('success', 'Member reverified successfully.');
+        }
+
+        return redirect()->back()->with('error', 'Member not found.');
+    }
+
     public function sendSms(Request $request)
     {
+        $adminId = Session::get('admin_id');
+        
         $mobileNumber = $request->input('mobile_number');
 
         $memberId = $request->input('memberId');
-        $memberDetails = Member::find($memberId);
+        $memberDetails = Member::where('adminId','=',$adminId)->find($memberId);
         $fullName = $memberDetails->Name . ' ' . $memberDetails->Middle_Name . ' ' . $memberDetails->Surname;
-//         $url = "http://bulksms.nkinfo.in/pushsms.php";
+        $url = "http://bulksms.nkinfo.in/pushsms.php";
 
-//         // Prepare the query parameters
-//         $params = [
-//             'username' => 'SouthSabha',
-//             'api_password' => 'ac54bqbi852p0dpxf',
-//             'sender' => 'SABHAK',
-//             'to' => $mobileNumber,
-//             // 'group' => '',
-//             'message' => "$fullName
-// Kindly update Your Membership data & family details in the below link:
-// tinyurl.com/southsaba
-// South Sabha",
-//             // 'unicode' => 1,
-//             'priority' => '11',
-//             'e_id' => '1101421070000082837',
-//             't_id' => '1107173166091517554'
-//         ];
+        // Prepare the query parameters
+        $params = [
+            'username' => 'SouthSabha',
+            'api_password' => 'ac54bqbi852p0dpxf',
+            'sender' => 'SABHAK',
+            'to' => $mobileNumber,
+            // 'group' => '',
+            'message' => "$fullName
+Kindly update Your Membership data & family details in the below link:
+tinyurl.com/southsaba
+South Sabha",
+            // 'unicode' => 1,
+            'priority' => '11',
+            'e_id' => '1101421070000082837',
+            't_id' => '1107173166091517554'
+        ];
 
         // Send the request
         $response = Http::get($url, $params);
@@ -555,6 +782,8 @@ class AdminController extends Controller
 
     public function sendAllSms(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $selectedMembers = $request->input('selected_members');
         // $message = $request->input('message');
 
@@ -564,28 +793,28 @@ class AdminController extends Controller
             // $messageContent = $message; 
             $id = $member['memberId'];
 
-            $memberDetails = Member::find($id);
+            $memberDetails = Member::where('adminId','=',$adminId)->find($id);
 
             $fullName = $memberDetails->Name . ' ' . $memberDetails->Middle_Name . ' ' . $memberDetails->Surname;
 
-//             $url = "http://bulksms.nkinfo.in/pushsms.php";
+            $url = "http://bulksms.nkinfo.in/pushsms.php";
 
-//             // Prepare the query parameters
-//             $params = [
-//                 'username' => 'SouthSabha',
-//                 'api_password' => 'ac54bqbi852p0dpxf',
-//                 'sender' => 'SABHAK',
-//                 'to' => $mobileNumber,
-//                 // 'group' => '',
-//                 'message' => "$fullName
-// Kindly update Your Membership data & family details in the below link:
-// tinyurl.com/southsaba
-// South Sabha",
-//                 // 'unicode' => 1,
-//                 'priority' => '11',
-//                 'e_id' => '1101421070000082837',
-//                 't_id' => '1107173166091517554'
-//             ];
+            // Prepare the query parameters
+            $params = [
+                'username' => 'SouthSabha',
+                'api_password' => 'ac54bqbi852p0dpxf',
+                'sender' => 'SABHAK',
+                'to' => $mobileNumber,
+                // 'group' => '',
+                'message' => "$fullName
+Kindly update Your Membership data & family details in the below link:
+tinyurl.com/southsaba
+South Sabha",
+                // 'unicode' => 1,
+                'priority' => '11',
+                'e_id' => '1101421070000082837',
+                't_id' => '1107173166091517554'
+            ];
 
             // Send the request
             $response = Http::get($url, $params);
@@ -596,10 +825,12 @@ class AdminController extends Controller
 
     public function filterVerify(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $status = $request->input('status');
         // print_r($status);die;
         $paginateInput = $request->input('paginateInput', 20);
-        $query = Member::where('isDeleted', '!=', true)
+        $query = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)
             ->orderBy('Name', 'asc')
             ->orderBy('Middle_Name', 'asc')
             ->orderBy('Surname', 'asc');
@@ -607,7 +838,9 @@ class AdminController extends Controller
         if ($status === 'Yes') {
             $query->where('isVerified', $status);
         } else if ($status === 'No') {
-            $query->where('isVerified', "!=", 'Yes');
+            $query->where('isVerified', "!=", 'Yes')->where('isVerified', "!=", 'reverified');
+        } else if ($status === 'reverified') {
+            $query->where('isVerified', "=", 'reverified');
         } else {
         }
 
@@ -617,6 +850,8 @@ class AdminController extends Controller
 
     public function downloadMembers(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $keyword = $request->input('keyword');
         $membersType = $request->input('membersType');
         $selectedMembers = $request->input('selected_members');
@@ -626,7 +861,14 @@ class AdminController extends Controller
         // MongoDB aggregation pipeline
         $pipeline = [];
 
-        $pipeline[] = ['$match' => ['isDeleted' => ['$ne' => true]]];
+        $pipeline[] = [
+                        '$match' => [
+                            '$and' => [
+                                ['adminId' => $adminId], 
+                                ['isDeleted' => ['$ne' => true]]
+                            ]
+                        ]
+                    ];
 
         // Apply filter by member type if selected
         if ($membersType && $membersType !== 'all') {
@@ -634,6 +876,10 @@ class AdminController extends Controller
         }
 
         if ($verifyInp == 'Yes') {
+            $pipeline[] = ['$match' => ['isVerified' => $verifyInp]];
+        }
+
+        if ($verifyInp == 'reverified') {
             $pipeline[] = ['$match' => ['isVerified' => $verifyInp]];
         }
 

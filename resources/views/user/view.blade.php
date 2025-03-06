@@ -19,10 +19,10 @@
             <div class="south_jst">
                 <div class="top_hdr">
                     <div class="logo">
-                        {{-- <img src="{{ asset('images/logo.png') }}" /> --}}
+                        <img src="{{ asset('images/logo.png') }}" />
                     </div>
                     <div class="top_h">
-                        <h2>flexiForms Pro<br/> Reflects seamless team building and form integration</h2>
+                        <h2>south calcutta<br/> sri jain swetamber terapanthi sabha</h2>
                         
                     </div>
                 </div>

@@ -1865,9 +1865,12 @@ figure.table table{
 .bdayDate{
   font-size: 13px;
 }
-.cnct_icns_btn.whts{
+/* .cnct_icns_btn.whts{
   padding-right: 20px;
-}
+} */
+ .cnct_icns_btn.pdf{
+  font-size: 18px;
+ }
 .member-item{
   font-size: 14px;
   font-weight: 400;
@@ -2082,4 +2085,100 @@ background-color: #f2f2f2;
   padding: 0 5px;
   font-weight: bold;
   color: red;
+}
+/* moumi 5.2.25 */
+#eventImagesContainer{
+  display: flex;
+ gap: 12px;
+ flex-wrap: wrap;
+}
+.nw_bt {
+  border: 1px solid #000;
+  outline: none;
+  padding: 2px 5px;
+  font-size: 13px;
+}
+.ne_btnn{
+display: flex;
+    justify-content: space-between;
+    position: absolute;
+    top: 2px;
+    width: 95%;
+    left: 2px;
+    right: 2px;
+}
+.nw_bt:hover{
+background: #000;
+color: #fff;
+}
+.overlay-image {
+  filter: brightness(80%);
+  transition: filter 0.3s;
+}
+.remove-btn.nw_bt{
+  background-color: red;
+  color:#fff;
+}
+/* m 6.2.25 */
+.eventDetails__n table{
+  width: 100%;
+}
+.eventDetails__n thead{
+  background: #f2f2f2;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+.eventDetails__n th,.eventDetails__n td{
+  padding: 15px;
+  color: #000;
+  font-size: 15px;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+.eventDetails__n td{
+  color: #717171;
+}
+.eventDetails__n tbody tr{
+  background-color: #fff;
+}
+.eventDetails__n tbody{
+  box-shadow: 2px 0px 10px #0002;
+}
+/* .evnt_drop .actn_bt{
+  border: 1px solid #ccc;
+  outline: none;
+  padding: 5px;
+} */
+ .evnt_drop{
+  text-align: center;
+ }
+ .evnt_drop .ebnt_d{
+  background: #fff9ee;
+  border: 1px solid transparent !important;
+  width: 29px;
+  height: 29px;
+  color: red;
+  font-size: 19px;
+  border-radius: 5px;
+ }
+.evnt_drop .dropdown-menu{
+  padding: 0 !important;
+  width: 140px !important;
+  left: -50px !important;
+}
+.evnt_drop  .dropdown-item{
+  font-size: 15px !important;
+  border-bottom: 1px solid #ccc !important;
+  padding: 7px;
+  text-align: center !important;
+  color: #0d6efd !important;
+}
+.evnt_drop  .dropdown-item:last-child{
+  border-bottom: none !important;
+}
+.dropdown-toggle:empty::after {
+  transform: rotate(180deg) !important;
+}
+.evnt_drop.dropdown.show .dropdown-toggle:empty::after {
+  transform: rotate(0) !important;
 }

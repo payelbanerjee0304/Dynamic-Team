@@ -6,10 +6,13 @@ namespace App\Models;
 // use Illuminate\Database\Eloquent\Model;
 
 use MongoDB\Laravel\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
+
 
 class Member extends Model
 {
     // use HasFactory;
+    use Notifiable;
     
     protected $connection = 'mongodb';
 }

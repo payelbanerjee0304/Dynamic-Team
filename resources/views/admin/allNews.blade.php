@@ -370,30 +370,30 @@
     });
 </script>
 <script>
-function openNews(evt, cityName) {
-    var i, tabcontentNws, tablinksNws;
-    // Hide all tab contents
-    tabcontentNws = document.getElementsByClassName("tabcontentNws");
-    for (i = 0; i < tabcontentNws.length; i++) {
-        tabcontentNws[i].style.display = "none";
+    function openNews(evt, cityName) {
+        var i, tabcontentNws, tablinksNws;
+        // Hide all tab contents
+        tabcontentNws = document.getElementsByClassName("tabcontentNws");
+        for (i = 0; i < tabcontentNws.length; i++) {
+            tabcontentNws[i].style.display = "none";
+        }
+        // Remove active class from all buttons
+        tablinksNws = document.getElementsByClassName("tablinksNws");
+        for (i = 0; i < tablinksNws.length; i++) {
+            tablinksNws[i].className = tablinksNws[i].className.replace(" active", "");
+        }
+        // Show the selected tab content and add active class to the button
+        document.getElementById(cityName).style.display = "block";
+        evt.currentTarget.className += " active";
     }
-    // Remove active class from all buttons
-    tablinksNws = document.getElementsByClassName("tablinksNws");
-    for (i = 0; i < tablinksNws.length; i++) {
-        tablinksNws[i].className = tablinksNws[i].className.replace(" active", "");
-    }
-    // Show the selected tab content and add active class to the button
-    document.getElementById(cityName).style.display = "block";
-    evt.currentTarget.className += " active";
-}
 
-// Set the default tab as active when the page loads
-document.addEventListener("DOMContentLoaded", function() {
-    // Simulate a click on the first tab to set it as the default
-    const defaultTab = document.querySelector(".tablinksNws");
-    if (defaultTab) {
-        defaultTab.click();
-    }
-});
+    // Set the default tab as active when the page loads
+    document.addEventListener("DOMContentLoaded", function() {
+        // Simulate a click on the first tab to set it as the default
+        const defaultTab = document.querySelector(".tablinksNws");
+        if (defaultTab) {
+            defaultTab.click();
+        }
+    });
 </script>
 @endsection

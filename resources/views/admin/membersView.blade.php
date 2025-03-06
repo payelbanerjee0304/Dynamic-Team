@@ -65,6 +65,35 @@
     }
     }
     /* payel loader add */
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-container::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%; /* Position above the button */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 4px;
+        white-space: nowrap;
+        font-size: 12px;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .tooltip-container:hover::after {
+        visibility: visible;
+        opacity: 1;
+    }
+    .drv_tbl_icns.dropdown .dropdown-menu li .dpdn_btn_icns.reverify{
+        color: #0D6EFD !important;
+        }
 </style>
 
 <div id="loader" style="display: none;">
@@ -110,6 +139,7 @@
                         <option value="all">All Member </option>
                         <option value="Yes">Verified ({{$verifiedCount}})</option>
                         <option value="No">Non-Verified</option>
+                        <option value="reverified">Reverified ({{$reverifiedCount}})</option>
                     </select>
                 </div>
                 <div class="mmbr_list_right_dnld">
@@ -153,6 +183,7 @@
                 success: function(data) {
                     $('#tableData').html(data);
                     initializeMemberViewScripts();
+                    pdfDownload();
                 }
             });
         }
@@ -167,6 +198,7 @@
                 success: function(data) {
                     $('#tableData').html(data);
                     initializeMemberViewScripts();
+                    pdfDownload();
                 }
             });
         }
@@ -181,6 +213,7 @@
                 success: function(data) {
                     $('#tableData').html(data);
                     initializeMemberViewScripts();
+                    pdfDownload();
                 }
             });
         }
@@ -196,6 +229,7 @@
                 success: function(data) {
                     $('#tableData').html(data);
                     initializeMemberViewScripts();
+                    pdfDownload();
                 }
             });
         }
@@ -294,6 +328,7 @@
                 success: function(data) {
                     $('#tableData').html(data);
                     initializeMemberViewScripts();
+                    pdfDownload();
                 }
             });
         }
@@ -444,9 +479,48 @@
             });
         });
     }
+
+    function pdfDownload() {
+        $(".cnct_icns_btn.pdf").click(function() {
+            const memberId = $(this).data("id");
+            // console.log(memberId);
+            // Show loader when download starts
+            $('#loader').show();
+            $.ajax({
+                url: '/generate-member-pdf',
+                method: 'POST',
+                data: {
+                    memberId: memberId,
+                    _token: $('meta[name="csrf-token"]').attr('content'), // CSRF token
+                },
+                xhrFields: {
+                    responseType: 'blob' // Expect binary data for file download
+                },
+                success: function (response) {
+                    // Hide the loader once the download completes
+                    $('#loader').hide();
+
+                    const url = window.URL.createObjectURL(new Blob([response]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `member_${memberId}.pdf`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                error: function (xhr) {
+                    // Hide the loader if there's an error
+                    $('#loader').hide();
+                    console.error(xhr.responseText);
+                    alert('Failed to generate PDF. Please try again.');
+                }
+            });
+        });
+    }
     $(document).ready(function() {
         // SMS button click event
         initializeMemberViewScripts();
+        pdfDownload();
 
         // wp button click event
         $(".cnct_icns_btn.whts").click(function(e) {

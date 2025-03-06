@@ -1,5 +1,9 @@
 @extends('layout.adminapp')
-
+<style>
+    .swal2-confirm.swal2-styled{
+        background-color: #ff0000;
+    }
+</style>
 
 @section('content')
 <div class="otr">
@@ -15,13 +19,14 @@
                         <input type="hidden" name="tenure" id="tenure" value="{{ $team->tenure }}">
                         <input type="hidden" name="startDate" id="startDate" value="{{ $team->startDate }}">
                         <input type="hidden" name="endDate" id="endDate" value="{{ $team->endDate }}">
+                        <input type="hidden" name="alreadyAssignedCount" id="alreadyAssignedCount" value="{{ $alreadyAssignedCount }}">
                         <div class="frm_row">
                             <label> Group Name</label>
                             <input type="text" name="grpName" id="grpName" placeholder="Enter Name" value="{{ $groupName }}" readonly>
                         </div>
                         <div class="frm_row">
                             <label>Group Level</label>
-                            <select name="level" id="level"  placeholder="Enter Level" readonly>
+                            <select name="level" id="level"  placeholder="Enter Level"  onmousedown="return false;">
                                 <option value="">Select</option>
                                 <option value="L1" {{ $grouplevel === 'L1' ? 'selected' : '' }}>Level 1</option>
                                 <option value="L2" {{ $grouplevel === 'L2' ? 'selected' : '' }}>Level 2</option>
@@ -38,11 +43,15 @@
                                     <input type="text" name="dsgHd1" id="dsgHd1" placeholder="Enter Designation" oninput="formatInput(this)" value="{{ $desg }}" readonly><br>
                                     <small class="error-message" id="dsgHd1_error"></small>
                                 </label>
+                                <label>
+                                    <input type="text" name="nosOfMemberAssigned" id="nosOfMemberAssigned" placeholder="Max No. of member assigned" value="{{ $maxAssignedMembers }}" readonly><br>
+                                    <small class="error-message" id="nosOfMemberAssigned_error"></small>
+                                </label>
                                 <select  name="assignedMember" id="assignedMember">
                                     <option value="">Select Name</option>
                                     <option value="all">Select All</option>
                                     @foreach ($members as $member)
-                                        <option value="{{$member->_id}}" @if(in_array($member->_id, $assignedMemberIds)) disabled @endif>{{$member->Name}} @if(!empty($member->Middle_Name)){{$member->Middle_Name}} @endif{{$member->Surname}}</option>
+                                        <option value="{{$member->_id}}" @if(in_array($member->_id, $disabledMemberIds)) disabled @endif>{{$member->Name}} @if(!empty($member->Middle_Name)){{$member->Middle_Name}} @endif{{$member->Surname}}</option>
                                     @endforeach
                                 </select>
 
@@ -69,6 +78,9 @@
 <script>
     $(document).ready(function() {
 
+        let maxAssignedMembers = parseInt($('#nosOfMemberAssigned').val()); // Max members allowed
+        let assignedCount = parseInt($('#alreadyAssignedCount').val());
+
         function formatInput(input) {
             // Convert to uppercase and remove spaces or hyphens
             let formattedValue = input.value
@@ -89,59 +101,74 @@
             $('#member_names').val(memberNames.join(',')); // Member IDs as a comma-separated string
         }
 
+        function checkLimit() {
+            if (assignedCount >= maxAssignedMembers) {
+                $('#assignedMember').prop('disabled', true); // Disable dropdown
+            } else {
+                $('#assignedMember').prop('disabled', false); // Enable dropdown
+            }
+        }
+
+
         // Handle selection changes
-        $('#assignedMember').on('change', function() {
+        $('#assignedMember').on('change', function () {
             var selectedMember = $(this).find('option:selected');
             var memberId = selectedMember.val();
             var memberName = selectedMember.text();
 
+            // "Select All" logic
             if (memberId === 'all') {
-                // "Select All" logic
                 $('#assignedMember option:not(:disabled)').each(function () {
                     var id = $(this).val();
                     var name = $(this).text();
 
-                    // Exclude "Select All" option
-                    if (id && id !== 'all' && !$('#assnMember').find('[data-id="' + id + '"]').length) {
+                    // Add only if within limit
+                    if (id && id !== 'all' && assignedCount < maxAssignedMembers && !$('#assnMember').find('[data-id="' + id + '"]').length) {
                         $('#assnMember').append(
                             '<div class="member-item" data-id="' + id + '" data-name="' + name + '">' +
                                 name +
                                 '<span class="remove">&times;</span>' +
                             '</div>'
                         );
-
-                        // Disable the option
-                        $(this).prop('disabled', true);
+                        assignedCount++; // Increment count
+                        $(this).prop('disabled', true); // Disable the option
                     }
                 });
-
-                // Reset the dropdown after "Select All"
                 $(this).val('');
-                updateHiddenInput();
-            } else if (memberId && memberId !== 'all' && !$('#assnMember').find('[data-id="' + memberId + '"]').length) {
-                // Handle individual member selection
-                $('#assnMember').append(
-                    '<div class="member-item" data-id="' + memberId + '" data-name="' + memberName + '">' +
-                        memberName +
-                        '<span class="remove">&times;</span>' +
-                    '</div>'
-                );
-
-                // Disable the selected option in the select box
-                selectedMember.prop('disabled', true);
-                $(this).val('');
-
-                updateHiddenInput();
+            } 
+            // Handle single selection
+            else if (memberId && memberId !== 'all' && !$('#assnMember').find('[data-id="' + memberId + '"]').length) {
+                if (assignedCount < maxAssignedMembers) {
+                    $('#assnMember').append(
+                        '<div class="member-item" data-id="' + memberId + '" data-name="' + memberName + '">' +
+                            memberName +
+                            '<span class="remove">&times;</span>' +
+                        '</div>'
+                    );
+                    assignedCount++; // Increment count
+                    selectedMember.prop('disabled', true); // Disable the selected option
+                    $(this).val('');
+                } else {
+                    Swal.fire('Limit Reached!', 'You cannot assign more members.', 'warning');
+                }
             }
+
+            // Update hidden inputs and check limit
+            updateHiddenInput();
+            checkLimit();
         });
+        checkLimit();
 
         // Handle remove button clicks
-        $('#assnMember').on('click', '.remove', function() {
+        $('#assnMember').on('click', '.remove', function () {
             var itemId = $(this).closest('.member-item').data('id');
             $('#assignedMember option[value="' + itemId + '"]').prop('disabled', false); // Re-enable the option
-            $('#assignedMember option[value="' + itemId + '"]').prop('selected', false); // Unselect the option
             $(this).closest('.member-item').remove();
+            assignedCount--; // Decrease count
+
+            // Update hidden inputs and check limit
             updateHiddenInput();
+            checkLimit();
         });
 
         // Real-time validation for "Level" field
@@ -207,21 +234,21 @@
                         Swal.fire({
                             title: response.message,
                             icon: 'success',
-                            showCancelButton: true,
-                            confirmButtonText: 'Continue',
-                            cancelButtonText: 'Complete',
+                            // showCancelButton: true,
+                            // confirmButtonText: 'Continue',
+                            // cancelButtonText: 'Complete',
                         }).then((result) => {
-                            if (result.isConfirmed) {
+                            // if (result.isConfirmed) {
                                 // Continue: Reload with fixed level, reset other fields
-                                $('#dsgHd1').val('');
-                                $('#assignedMember').val('');
-                                $('#assnMember').empty();
-                                $('#member_ids').val('');
-                                $('#member_names').val('');
-                            } else {
+                                // $('#dsgHd1').val('');
+                                // $('#assignedMember').val('');
+                                // $('#assnMember').empty();
+                                // $('#member_ids').val('');
+                                // $('#member_names').val('');
+                            // } else {
                                 const teamId = $('#teamId').val(); // Get the teamId value
                                 window.location.href = `/admin/all-group/${teamId}`;
-                            }
+                            // }
                         });
                     },
                     error: function (xhr, status, error) {

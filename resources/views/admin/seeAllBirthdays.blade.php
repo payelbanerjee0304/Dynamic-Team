@@ -25,18 +25,7 @@
                 @foreach ($birthDays as $user)
                 @php
                     $dob = $user['DOB'];
-                    $formattedDOB = null;
-                    try {
-                        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dob)) {
-                            // Format: YYYY-MM-DD
-                            $formattedDOB = Carbon\Carbon::createFromFormat('Y-m-d', $dob)->format('jS F');
-                        } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dob)) {
-                            // Format: MM/DD/YYYY
-                            $formattedDOB = Carbon\Carbon::createFromFormat('m/d/Y', $dob)->format('jS F');
-                        }
-                    } catch (\Exception $e) {
-                        $formattedDOB = 'Invalid Date';
-                    }
+                    $formattedDOB = \Carbon\Carbon::createFromFormat('Ymd', $dob)->format('jS F');
                 @endphp
                 <div class="n_roww">
                     <div class='nsw_img'>
@@ -64,15 +53,17 @@
             <div class="all_n_ews">
                 @if (!empty($upcomingBirthdays) && count($upcomingBirthdays))
                 @foreach ($upcomingBirthdays as $user)
+                @php
+                    $dob = (string) $user['DOB']; // Convert to string if it's stored as an integer
+                    $formattedDOB = \Carbon\Carbon::createFromFormat('Ymd', $dob)->format('jS F');
+                @endphp
                 <div class="n_roww">
                     <div class='nsw_img'>
                         <img src="{{ $user['image'] ? asset($user['image']) : asset('images/noImage.jpg') }}" alt="news-image"/>
                     </div>
                     <div class="n-cnttnt">
                     <h3 class="red">{{ $user['Name'] }} {{ $user['Middle_Name'] }} {{ $user['Surname'] }}</h3>
-                    <p class="bdayDate">
-                        {{ \Carbon\Carbon::instance($user['DOB']->toDateTime())->format('jS F') }}
-                    </p>
+                    <p class="bdayDate">{{ $formattedDOB }}</p>
                     </div>
                 </div>
                 @endforeach

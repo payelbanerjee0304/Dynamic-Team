@@ -1,9 +1,10 @@
 @extends('layout.adminapp')
 @section('content')
 <style>
-    .grpModalDes{
+    .grpModalDes
+    {
         font-size:13px;
-        }
+    }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -15,11 +16,12 @@
             <div class="heading new">
 
             <a href="{{ route('admin.allTeam') }}"><i class="fa fa-long-arrow-left"></i></a>
-                <h1>All Groups</h1>
+                <h1>All group details for {{ $teamName }}</h1>
             </div>
             <div class="c-nws">
                 <a href="{{ route('admin.createNewGroup', $id) }}" class="mmbr_list_right_anch">Create Group</a>&nbsp;
-                <a href="{{ route('admin.downloadGroups', $id) }}" class="mmbr_list_right_anch">Download</a>
+                <a href="{{ route('admin.downloadGroups', $id) }}" class="mmbr_list_right_anch">Download Format</a>&nbsp;
+                <a href="{{ route('admin.importMembersGroupPage', $id) }}" class="mmbr_list_right_anch">Import Members</a>
             </div>
         </div>
         <div id="tableData" class="admn_al_grp">
@@ -31,6 +33,7 @@
                         <div class="table-cell">Group Level</div>
                         <div class="table-cell">Designation</div>
                         <div class="table-cell">Assigned Members</div>
+                        <div class="table-cell">Max Assigned Members</div>
                         <div class="table-cell">Assign New</div>
                     </li>
         
@@ -38,42 +41,50 @@
                     @if (collect($groups)->isNotEmpty())
                         @foreach ($groups as $group)
                             @foreach ($group as $designation => $members)
-                                @if (is_iterable($members)) 
-                                    <li class="table-row">
-                                        <!-- Group Level -->
-                                        <div class="table-cell">{{ $group['groupName'] }}</div>
-                                        <div class="table-cell">{{ $group['grouplevel'] }}</div>
-        
-                                        <!-- Designation -->
-                                        <div class="table-cell">{{ ucfirst($designation) }}</div>
-        
-                                        <!-- Assigned Members -->
-                                        <div class="table-cell mem_list">
-                                            {{-- <a href="" class="new_page"><span><i class="fa fa-book"></i></span></a> --}}
-                                            <ul class="members-list">
-                                                @foreach ($members as $member)
-                                                    @if ($member['isActive'] === 'Yes')
-                                                        <li>{{ $member['name'] }} <br>{{ $member['isActive'] === 'Yes' ? '(active)' : '' }} 
-                                                            <a href="javascript:void(0);" class="editMember" data-team-id="{{ $id }}" data-id="{{ $member['memberId'] }}" data-name="{{ $member['name'] }}" data-status="{{ $member['isActive'] }}" data-designation="{{ $designation }}">
-                                                                <i class="fa-regular fa-pen-to-square" style="color: #e13333" ></i>
-                                                            </a> 
-                                                        </li>
-                                                    @endif
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                        <div class="table-cell">
-                                            <a href="{{ route('admin.assignNewMembers', [
-                                                        'id' => $id,
-                                                        'groupName' => $group['groupName'],
-                                                        'grouplevel' => $group['grouplevel'],
-                                                        'designation' => $designation,
-                                                        // 'members' => json_encode($members) // Encode members as JSON
-                                                    ]) }}" class="new_page">
-                                                <span><i class="fa fa-book"></i></span>
-                                            </a>
-                                        </div>
-                                    </li>
+                                @if ($designation !== 'maxAssignedMembers')
+                                    @if (is_iterable($members)) 
+                                        <li class="table-row">
+                                            <!-- Group Level -->
+                                            <div class="table-cell">{{ $group['groupName'] }}</div>
+                                            <div class="table-cell">{{ $group['grouplevel'] }}</div>
+            
+                                            <!-- Designation -->
+                                            <div class="table-cell">{{ ucfirst($designation) }}</div>
+            
+                                            <!-- Assigned Members -->
+                                            <div class="table-cell mem_list">
+                                                {{-- <a href="" class="new_page"><span><i class="fa fa-book"></i></span></a> --}}
+                                                <ul class="members-list">
+                                                    @foreach ($members as $member)
+                                                        @if ($member['isActive'] === 'Yes')
+                                                            {{-- <li>{{ $member['name'] }} <br>{{ $member['isActive'] === 'Yes' ? '(active)' : '' }}  --}}
+                                                            <li>{{ $member['name'] }} 
+                                                                <a href="javascript:void(0);" class="editMember" data-team-id="{{ $id }}" data-id="{{ $member['memberId'] }}" data-name="{{ $member['name'] }}" data-status="{{ $member['isActive'] }}" data-designation="{{ $designation }} "data-max-assigned="{{ $group['maxAssignedMembers'][$designation] ?? 'N/A' }}" data-already-assigned="{{ count($members) }}">
+                                                                    <i class="fa-regular fa-pen-to-square" style="color: #e13333" ></i>
+                                                                </a> 
+                                                            </li>
+                                                        @endif
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                            <div class="table-cell">
+                                                {{ $group['maxAssignedMembers'][$designation] ?? 'N/A' }}
+                                            </div>
+                                            <div class="table-cell">
+                                                <a href="{{ route('admin.assignNewMembers', [
+                                                            'id' => $id,
+                                                            'groupName' => $group['groupName'],
+                                                            'grouplevel' => $group['grouplevel'],
+                                                            'designation' => $designation,
+                                                            'maxAssignedMembers' => $group['maxAssignedMembers'][$designation] ?? 0,
+                                                            'alreadyAssignedMembers' => count($members),
+                                                            // 'members' => json_encode($members) // Encode members as JSON
+                                                        ]) }}" class="new_page">
+                                                    <span><i class="fa fa-book"></i></span>
+                                                </a>
+                                            </div>
+                                        </li>
+                                    @endif
                                 @endif
                             @endforeach
                         @endforeach
@@ -111,6 +122,8 @@
                     <input type="hidden" id="modalHiddenMemberId" name="memberId">
                     <input type="hidden" id="modalHiddenTeamId" name="teamId">
                     <input type="hidden" id="modalHiddenCurrentDesignation" name="currentDesignation">
+                    <input type="hidden" id="modalHiddenMaxAssignedMembers" name="modalHiddenMaxAssignedMembers">
+                    <input type="hidden" id="modalHiddenAlreadyAssignedMembers" name="modalHiddenAlreadyAssignedMembers">
 
                     <!-- Submit Button -->
                     
@@ -149,6 +162,9 @@
             let memberName = $(this).data('name');
             let status = $(this).data('status');
             let currentDesignation = $(this).data('designation');
+            let maxAssignedMembers = $(this).data('max-assigned');
+            let alreadyAssignedMembers = $(this).data('already-assigned');
+            // console.log(alreadyAssignedMembers);
 
             let statusText = (status.toLowerCase() === 'yes') ? 'Active' : 'Inactive';
 
@@ -160,6 +176,8 @@
             $('#modalHiddenTeamId').val(teamId);
             $('#modalHiddenMemberId').val(memberId);
             $('#modalHiddenCurrentDesignation').val(currentDesignation);
+            $('#modalHiddenMaxAssignedMembers').val(maxAssignedMembers);
+            $('#modalHiddenAlreadyAssignedMembers').val(alreadyAssignedMembers);
 
             // Show modal
             $('#editMemberModal').modal('show');
@@ -173,6 +191,8 @@
             let memberId = $('#modalHiddenMemberId').val();
             let statusValue = $('#statusValue').val();
             // console.log(statusValue);
+            // console.log(teamId);
+            // console.log(memberId);
 
             // AJAX request to update the member status
             $.ajax({
@@ -185,7 +205,7 @@
                     statusValue: statusValue,
                 },
                 success: function (response) {
-                    // console.log(response);
+                    console.log(response);
                     alert("Status updated successfully!");
                     location.reload(); // Reload the page to reflect changes
                 },
@@ -197,15 +217,22 @@
 
         // Show Group and Designation Dropdowns
         $('#assignToAnother').click(function () {
-            $(this).hide(); 
+            $(this).hide();
             $('#Inactive').hide();
             let teamId = $('#modalHiddenTeamId').val();
+            let currentDesignation = $('#modalHiddenCurrentDesignation').val();
+            let memberId = $('#modalHiddenMemberId').val();
+            // console.log(memberId);
 
             // Fetch groups and designations via AJAX
             $.ajax({
-                url: '{{ route('admin.getGroups') }}', // Replace with your route
+                url: '{{ route('admin.getGroups') }}', 
                 type: 'GET',
-                data: { teamId: teamId },
+                data: { 
+                    teamId: teamId,
+                    currentDesignation:currentDesignation,
+                    memberId: memberId,
+                },
                 success: function (response) {
                     // Populate Group Dropdown
                     $('#groupSelect').empty().append('<option value="">Select Group level</option>');
@@ -229,6 +256,8 @@
         $('#groupSelect').change(function () {
             let designations = JSON.parse($('#groupSelect option:selected').attr('data-designations') || '[]');
             let currentDesignation = $('#modalHiddenCurrentDesignation').val();
+            let maxAssignedMembers = $('#modalHiddenMaxAssignedMembers').val();
+            // console.log(maxAssignedMembers);
 
             $('#designationSelect').empty().append('<option value="">Select Designation</option>');
 
@@ -238,6 +267,7 @@
                 }
             });
         });
+
 
         // Reassign Member
         $('#assignMemberBtn').click(function () {

@@ -119,15 +119,22 @@
             <div class="frm_cnt" id="frm_cnt2" style="display: none;">
               <h1>Personal Informations</h1>
               @php
-                  $dob = \DateTime::createFromFormat('m/d/Y', $member['DOB']) ?: \DateTime::createFromFormat('Y-m-d', $member['DOB']);
-                  $dom = \DateTime::createFromFormat('m/d/Y', $member['DOM']) ?: \DateTime::createFromFormat('Y-m-d', $member['DOM']);
+                  // Convert DOB (19930307) and DOM (YYYYMMDD) to proper date format
+                  $dob = isset($member['DOB']) && is_numeric($member['DOB']) 
+                      ? \DateTime::createFromFormat('Ymd', strval($member['DOB'])) 
+                      : null;
+
+                  $dom = isset($member['DOM']) && is_numeric($member['DOM']) 
+                      ? \DateTime::createFromFormat('Ymd', strval($member['DOM'])) 
+                      : null;
+
+                  // Format the dates to Y-m-d for use in inputs
                   $formattedDOB = $dob ? $dob->format('Y-m-d') : '';
                   $formattedDOM = $dom ? $dom->format('Y-m-d') : '';
 
+                  // Calculate age if DOB is available
                   $age = null;
-    
                   if ($dob) {
-                      // Calculate age
                       $today = new \DateTime();
                       $age = $today->diff($dob)->y;
                   }
@@ -135,7 +142,7 @@
               <div class="frm_d_div add_form">
                 <div class="frm_row">
                     <label>Date of Birth</label>
-                    <input type="date" name="DOB" id="dob" onchange="calculateAge()" value="{{ $formattedDOB }}"  max="{{ date('Y-m-d', strtotime('-18 years')) }}" />
+                    <input type="date" name="DOB" id="dob" onchange="calculateAge()" value="{{ isset($member['DOB']) ? \Carbon\Carbon::createFromFormat('Ymd', $member['DOB'])->format('Y-m-d') : '' }}"  max="{{ date('Y-m-d', strtotime('-18 years')) }}" />
                 </div>
                 <div class="frm_row">
                     <label>Age</label>

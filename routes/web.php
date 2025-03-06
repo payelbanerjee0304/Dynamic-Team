@@ -4,16 +4,19 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Member;
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Chiefadmin\ChiefadminController;
 use App\Http\Controllers\Admin\importMemberController;
 use App\Http\Controllers\Admin\NewsAdminController;
 use App\Http\Controllers\Admin\BirthdayAdminController;
 use App\Http\Controllers\Admin\DesignationAdminController;
 use App\Http\Controllers\Admin\TeamAdminController;
+use App\Http\Controllers\Admin\EventAdminController;
 
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\User\NewsUserController;
 use App\Http\Controllers\User\BirthdayUserController;
 use App\Http\Controllers\User\TeamUserController;
+use App\Http\Controllers\User\EventUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,18 +44,21 @@ Route::prefix('admin')->group(function () {
 
       Route::get('/member-view', [AdminController::class, 'allMembers'])->name('allMember');
       Route::get('/members_pagination', [AdminController::class, 'paginateMember'])->name('allMember.pagination');
-
       Route::get('/members_search', [AdminController::class, 'searchMember'])->name('allMember.search');
+      
       Route::get('/members_searchKeyword', [AdminController::class, 'searchKeywordMember'])->name('allMember.searchKeyword');
       Route::get('/members/suggestions', [AdminController::class, 'suggestMembers'])->name('allMember.suggestions');
       Route::get('/members_filter', [AdminController::class, 'filterMember'])->name('allMember.filter');
       Route::get('/members_filterVerify', [AdminController::class, 'filterVerify'])->name('allMember.filterVerify');
+      Route::get('/view', [AdminController::class, 'view'])->name('admin.view');
 
       Route::get('/add-member', [AdminController::class, 'addMember'])->name('admin.addMember');
       Route::post('/insert-member', [AdminController::class, 'insertMember'])->name('admin.insertMember');
       Route::get('/edit-member/{id}', [AdminController::class, 'editMember'])->name('admin.editMember');
       Route::post('/update-member', [AdminController::class, 'updateMember'])->name('admin.updateMember');
       Route::delete('/delete-member', [AdminController::class, 'deleteMember'])->name('admin.deleteMember');
+
+      Route::get('/reverify-member/{id}', [AdminController::class, 'reverifyMember'])->name('admin.reverifyMember');
 
       Route::post('/send-sms', [AdminController::class, 'sendSms'])->name('admin.sendSms');
       Route::post('/sendAll-sms', [AdminController::class, 'sendAllSms'])->name('admin.sendAllSms');
@@ -86,6 +92,8 @@ Route::prefix('admin')->group(function () {
       Route::post('/update-team-details',[TeamAdminController::class, 'updateTeamDetails'])->name('admin.updateTeamDetails');
       Route::delete('/delete-team', [TeamAdminController::class, 'deleteTeam'])->name('admin.deleteTeam');
       Route::get('/all-team',[TeamAdminController::class, 'allTeam'])->name('admin.allTeam');
+      Route::get('/clone-team/{id}', [TeamAdminController::class, 'teamClonePage'])->name('admin.teamClonePage');
+      Route::post('/clone-team', [TeamAdminController::class, 'cloneTeam'])->name('admin.cloneTeam');
 
       Route::get('/create-new-group/{id}', [TeamAdminController::class, 'createNewGroup'])->name('admin.createNewGroup');
       Route::post('/insert-new-group',[TeamAdminController::class, 'insertNewGroup'])->name('admin.insertNewGroup');
@@ -99,26 +107,37 @@ Route::prefix('admin')->group(function () {
 
       Route::get('/member-position-details',[TeamAdminController::class, 'memberPositionDetails'])->name('admin.memberPositionDetails');
       Route::get('/download-position-history', [TeamAdminController::class, 'downloadPositionHistory'])->name('admin.downloadPositionHistory');
+      Route::get('/import-members/{id}', [TeamAdminController::class, 'importMembersGroupPage'])->name('admin.importMembersGroupPage');
+      Route::post('/import-groups/{id}', [TeamAdminController::class, 'importGroups'])->name('admin.importGroups');
+
+      Route::get('/create-event',[EventAdminController::class, 'eventCreate'])->name('admin.eventCreate');
+      Route::post('/insert-event',[EventAdminController::class, 'insertEvent'])->name('admin.insertEvent');
+      Route::get('event-listing',[EventAdminController::class, 'eventListing'])->name('admin.eventListing');
+      Route::delete('/delete-event', [EventAdminController::class, 'deleteEvent'])->name('admin.deleteEvent');
+      Route::get('/edit-event/{eventId}', [EventAdminController::class, 'editEvent'])->name('admin.editEvent');
+      Route::post('/update-event/{eventId}', [EventAdminController::class, 'updateEvent'])->name('admin.updateEvent');
+      Route::get('/event-details/{eventId}', [EventAdminController::class, 'eventDetails'])->name('admin.eventDetails');
+      Route::get('/event-interested-members/{eventId}', [EventAdminController::class, 'interestedMembers'])->name('admin.interestedMembers');
    });
 });
 Route::post('/upload', [NewsAdminController::class, 'upload'])->name('admin.upload')->middleware('https');
 
-Route::middleware(['adminLoggedIn'])->group(function () {
-   Route::get('/members', [Member::class, 'allMembers'])->name('allMembers');
-   Route::get('/members_pagination', [Member::class, 'paginateMember'])->name('allMembers.pagination');
-   Route::get('/members_search', [Member::class, 'searchMember'])->name('allMembers.search');
-   Route::get('/members/suggestions', [Member::class, 'suggestMembers'])->name('allMembers.suggestions');
-   Route::get('/members_filter', [Member::class, 'filterMember'])->name('allMembers.filter');
+// Route::middleware(['adminLoggedIn'])->group(function () {
+//    Route::get('/members', [Member::class, 'allMembers'])->name('allMembers');
+//    Route::get('/members_pagination', [Member::class, 'paginateMember'])->name('allMembers.pagination');
+//    Route::get('/members_search', [Member::class, 'searchMember'])->name('allMembers.search');
+//    Route::get('/members/suggestions', [Member::class, 'suggestMembers'])->name('allMembers.suggestions');
+//    Route::get('/members_filter', [Member::class, 'filterMember'])->name('allMembers.filter');
 
    
 
-   Route::get('/add-member', [Member::class, 'addMember'])->name('addMember');
-   Route::post('/insert-member', [Member::class, 'insertMember'])->name('insertMember');
-   Route::get('/admin/view', [Member::class, 'view'])->name('admin.view');
+//    Route::get('/add-member', [Member::class, 'addMember'])->name('addMember');
+//    Route::post('/insert-member', [Member::class, 'insertMember'])->name('insertMember');
+//    Route::get('/admin/view', [Member::class, 'view'])->name('admin.view');
    
    
-   Route::get('/download-member/{id}', [Member::class, 'downloadMemberData'])->name('downloadMemberData');
-});
+//    Route::get('/download-member/{id}', [Member::class, 'downloadMemberData'])->name('downloadMemberData');
+// });
 
 Route::middleware(['userLoggedIn'])->group(function () {
    
@@ -132,6 +151,9 @@ Route::middleware(['userLoggedIn'])->group(function () {
 
    Route::get('/see-all-birthdays', [BirthdayUserController::class, 'seeAllBirthdays'])->name('seeAllBirthdays');
    Route::get('/check-positions', [TeamUserController::class, 'positionDetails'])->name('positionDetails');
+
+   Route::get('/all-events', [EventUserController::class, 'allEvents'])->name('allEvents');
+   Route::post('/event/interested/{eventId}', [EventUserController::class, 'markInterested'])->name('event.markInterested');
 });
 Route::get('/view', [UserController::class, 'view'])->name('view');
 
@@ -140,3 +162,28 @@ Route::post('/save', [UserController::class, 'save']);
 Route::post('/verifyAndLogin', [UserController::class, 'verifyAndLogin']);
 
 Route::get('/logout', [UserController::class, 'logout'])->name('logout');
+
+
+Route::post('/generate-member-pdf', [adminController::class, 'generateMemberPdf'])->name('generate.member.pdf');
+
+
+Route::prefix('chiefadmin')->group(function () {
+   Route::get('/login',[ChiefadminController::class, 'login'])->name('chiefadmin.login')->middleware('chiefadmin.redirect');
+
+   Route::post('/save', [ChiefadminController::class, 'save'])->name('chiefadmin.save');
+   Route::post('/verifyAndLogin', [ChiefadminController::class, 'verifyAndLogin'])->name('chiefadmin.verifyAndLogin');
+   Route::get('/logout', [ChiefadminController::class, 'logout'])->name('chiefadmin.logout');
+
+   Route::middleware(['chiefadminLoggedIn'])->group(function () {
+      Route::get('/dashboard', [ChiefadminController::class, 'dashboard'])->name('chiefadmin.dashboard');
+      Route::get('/dashboard_pagination', [ChiefadminController::class, 'paginateDashboard'])->name('chiefadmin.pagination');
+      Route::get('/dashboard_search', [ChiefadminController::class, 'searchDashboard'])->name('chiefadmin.search');
+      Route::get('/add-organizer', [ChiefadminController::class, 'addOrganizer'])->name('chiefadmin.addOrganizer');
+      Route::post('/insert-organizer', [ChiefadminController::class, 'insertOrganizer'])->name('chiefadmin.insertOrganizer');
+
+      Route::get('/edit-organizer/{id}', [ChiefadminController::class, 'editOrganizer'])->name('chiefadmin.editOrganizer');
+      Route::post('/update-organizer', [ChiefadminController::class, 'updateOrganizer'])->name('chiefadmin.updateOrganizer');
+      Route::delete('/delete-organizer', [ChiefadminController::class, 'deleteOrganizer'])->name('chiefadmin.deleteOrganizer');
+   });
+
+});

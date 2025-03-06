@@ -2,7 +2,14 @@
 
 
 @section('content')
-
+<style>
+    .swal2-confirm.swal2-styled{
+        background-color: rgb(47, 97, 47);
+    }
+    .swal2-cancel.swal2-styled{
+        background-color: #ff0000;
+    }
+</style>
 <div class="otr">
     <div class="container">
       <div class="south_jst editor">
@@ -24,7 +31,7 @@
                                 <option value="L2">Level 2</option>
                                 <option value="L3">Level 3</option>
                                 <option value="L4">Level 4</option>
-                                <option value="L5">Level 5</option> 
+                                <option value="L5">Level 5</option>
                                 <option value="L6">Level 6</option>
                             </select>
                             <small class="error-message" id="level_error"></small>
@@ -40,13 +47,17 @@
                                     <input type="text" name="dsgHd1" id="dsgHd1" placeholder="Enter Designation" oninput="formatInput(this)"><br>
                                     <small class="error-message" id="dsgHd1_error"></small>
                                 </label>
-                                <select  name="assignedMember" id="assignedMember">
+                                <label>
+                                    <input type="text" name="nosOfMemberAssigned" id="nosOfMemberAssigned" placeholder="Max No. of member assigned"><br>
+                                    <small class="error-message" id="nosOfMemberAssigned_error"></small>
+                                </label>
+                                {{-- <select  name="assignedMember" id="assignedMember">
                                     <option value="">Select Name</option>
                                     <option value="all">Select All</option>
                                     @foreach ($members as $member)
                                     <option value="{{$member->_id}}" @if(in_array($member->_id, $assignedMemberIds)) disabled @endif>{{$member->Name}} @if(!empty($member->Middle_Name)){{$member->Middle_Name}} @endif{{$member->Surname}}</option>
                                     @endforeach
-                                </select>
+                                </select> --}}
 
                                 <div id="assnMember"></div>
                                 <input type="hidden" name="member_ids" id="member_ids">
@@ -178,6 +189,11 @@
                 $('#dsgHd1_error').text(''); // Clear error message
             }
         });
+        $('#nosOfMemberAssigned').on('input', function () {
+            if ($(this).val()) {
+                $('#nosOfMemberAssigned_error').text(''); // Clear error message
+            }
+        });
 
         // Real-time validation for member selection
         $('#assignedMember').on('change', function () {
@@ -212,12 +228,18 @@
                 $('#dsgHd1').val(formattedDesignation); // Update input with formatted value
             }
 
-            // Check at least one member is added
-            let memberCount = $('#assnMember .member-item').length;
-            if (memberCount === 0) {
-                $('#assignedMember_error').text('Please select at least one member.');
+            let nosOfMemberAssigned = $('#nosOfMemberAssigned').val();
+            if (!nosOfMemberAssigned) {
+                $('#nosOfMemberAssigned_error').text('Please enter max number of members assigned');
                 isValid = false;
             }
+
+            // Check at least one member is added
+            // let memberCount = $('#assnMember .member-item').length;
+            // if (memberCount === 0) {
+            //     $('#assignedMember_error').text('Please select at least one member.');
+            //     isValid = false;
+            // }
 
             if (isValid) {
                 let formData = $(this).serialize(); // Serialize the form data
@@ -238,6 +260,7 @@
                             if (result.isConfirmed) {
                                 // Continue: Reload with fixed level, reset other fields
                                 $('#dsgHd1').val('');
+                                $('#nosOfMemberAssigned').val('');
                                 $('#assignedMember').val('');
                                 $('#assnMember').empty();
                                 $('#member_ids').val('');

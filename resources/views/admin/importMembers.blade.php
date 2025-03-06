@@ -7,23 +7,23 @@
           <div class="multi_top_dir">Upload Member Details</div>
 
             <form action="{{ route('admin.importMembersInsert') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="frm_cnt" id="frm_cnt2">
-                        <div class="frm_row">
-                            <label></label>
-                            <div class="task_dD attach">
-                                <label for=""><strong>Upload File</strong></label>
-                                <div>
-                                    <input type="file" id="file" name="file"/>
-                                </div>
-                                <small class="error-message" id="fileError"></small>
+                @csrf
+                <div class="frm_cnt" id="frm_cnt2">
+                    <div class="frm_row">
+                        <label></label>
+                        <div class="task_dD attach">
+                            <label for=""><strong>Upload File</strong></label>
+                            <div>
+                                <input type="file" id="file" name="file" required/>
                             </div>
+                            <small class="error-message" id="fileError"></small>
                         </div>
                     </div>
-                    <div class="btn_frm">
-                        <a href="{{route('admin.importMembersPage')}}" class="cmn_btn gre" id="resetBtn">Reset</a>
-                        <input type="submit" class="cmn_btn" id="submitBtn" value="Submit">
-                    </div>
+                </div>
+                <div class="btn_frm">
+                    <a href="{{route('admin.importMembersPage')}}" class="cmn_btn gre" id="resetBtn">Reset</a>
+                    <input type="submit" class="cmn_btn" id="submitBtn" value="Submit">
+                </div>
             </form>
         </div>
       </div>

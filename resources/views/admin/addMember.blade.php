@@ -513,13 +513,13 @@
                 }
 
                 // Validate Father's Name
-                const fatherName = $("input[name='Son_Daughter_of']").val().trim();
-                if (fatherName === "") {
-                    $("#Son_Daughter_of-error").text("Father's name is required.");
-                    isValid = false;
-                } else {
-                    $("#Son_Daughter_of-error").text("");
-                }
+                // const fatherName = $("input[name='Son_Daughter_of']").val().trim();
+                // if (fatherName === "") {
+                //     $("#Son_Daughter_of-error").text("Father's name is required.");
+                //     isValid = false;
+                // } else {
+                //     $("#Son_Daughter_of-error").text("");
+                // }
 
                 // // Validate Terapanth Card (Radio buttons)
                 // const terapanthCard = $("input[name='hasTerapanthCard']:checked").val();

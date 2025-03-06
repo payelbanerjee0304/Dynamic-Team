@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Writer\Exception as WriterException;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeamAdminController extends Controller
@@ -30,6 +31,8 @@ class TeamAdminController extends Controller
     {
         // echo "<pre>";
         // print_r($request->all());die;
+        $adminId = Session::get('admin_id');
+        // print_r($adminId);die;
 
         $formData = $request->all();
 
@@ -45,6 +48,7 @@ class TeamAdminController extends Controller
         $team->startDate = (int) $startDate ?? "";
         $team->endDate = (int) $endDate ?? "";
         $team->isActive= true;
+        $team->adminId = $adminId;
 
         $team->save();
 
@@ -53,13 +57,17 @@ class TeamAdminController extends Controller
 
     public function editTeamDetails($id)
     {
-        $team = Team::where('_id', $id)->first();
+        $adminId = Session::get('admin_id');
+
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
 
         return view('admin.teamEdit', compact('id','team'));
     }
 
     public function updateTeamDetails(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         // echo "<pre>";
         // print_r($request->all());die;
         $formData = $request->all();
@@ -70,7 +78,7 @@ class TeamAdminController extends Controller
         $startDate = Carbon::createFromFormat('d-m-Y', $tenureDates[0])->format('Ymd');
         $endDate = Carbon::createFromFormat('d-m-Y', $tenureDates[1])->format('Ymd');
 
-        $team = Team::find($formData['teamId']);
+        $team = Team::where('adminId','=',$adminId)->find($formData['teamId']);
 
         if ($team) {
 
@@ -87,7 +95,9 @@ class TeamAdminController extends Controller
 
     public function deleteTeam(Request $request)
     {
-        $team = Team::find($request->id);
+        $adminId = Session::get('admin_id');
+
+        $team = Team::where('adminId','=',$adminId)->find($request->id);
         if ($team) 
         {
             $team->isDeleted = true;
@@ -102,14 +112,18 @@ class TeamAdminController extends Controller
 
     public function allTeam()
     {
-        $allTeam = Team::where('isDeleted', '!=',true)->orderBy('created_at', 'desc')->get();
+        $adminId = Session::get('admin_id');
+
+        $allTeam = Team::where('adminId','=',$adminId)->where('isDeleted', '!=',true)->orderBy('created_at', 'desc')->get();
         return view('admin.allTeam', compact('allTeam'));
     }
 
     public function createNewGroup($id)
     {
-        $members = Member::where('isDeleted', '!=', true)->orderBy('Name', 'asc')->get();
-        $team = Team::where('_id', $id)->first();
+        $adminId = Session::get('admin_id');
+
+        $members = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)->orderBy('Name', 'asc')->get();
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
         $assignedMemberIds = [];
         $groupNames = [];
 
@@ -120,7 +134,8 @@ class TeamAdminController extends Controller
                 $level = $group['grouplevel'] ?? ''; // Get level
                 $name = $group['groupName'] ?? '';  // Get name
 
-                if ($level && $name) {
+                if ($level && $name) 
+                {
                     $groupNames[$level] = $name; // Map level to group name
                 }
 
@@ -145,6 +160,8 @@ class TeamAdminController extends Controller
     }
     public function insertNewGroup(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         // echo "<pre>";
         // print_r($request->all());die;
         // Retrieve form data
@@ -152,8 +169,9 @@ class TeamAdminController extends Controller
         $grpName = $request->grpName;
         $level = $request->level; // Group level (e.g., L1, L2)
         $designation = $request->dsgHd1; // e.g., "president"
-        $memberIds = explode(',', $request->member_ids); 
-        $memberNames = explode(',', $request->member_names); 
+        $nosOfMemberAssigned = $request->nosOfMemberAssigned; // e.g., "president"
+        $memberIds = $request->member_ids ? explode(',', $request->member_ids) : []; 
+        $memberNames = $request->member_names ? explode(',', $request->member_names) : [];
         $tenureStart = $request->startDate;
         $tenureEnd = $request->endDate;
         $tenure = $request->tenure;
@@ -169,7 +187,7 @@ class TeamAdminController extends Controller
         }
 
         // Retrieve the team
-        $team = Team::where('_id', $teamId)->first();
+        $team = Team::where('adminId','=',$adminId)->where('_id', $teamId)->first();
 
         if (!$team) {
             return redirect()->back()->with('error', 'Team not found.');
@@ -182,7 +200,16 @@ class TeamAdminController extends Controller
         $levelFound = false;
         foreach ($groupDetails as &$group) {
             if ($group['grouplevel'] === $level) {
+
                 $levelFound = true;
+
+                if (!isset($group['maxAssignedMembers'])) {
+                    $group['maxAssignedMembers'] = [];
+                }
+
+                // Assign maxAssignedMembers for the specific designation
+                $group['maxAssignedMembers'][$designation] = $nosOfMemberAssigned;
+
                 // If the level exists, check if the designation exists
                 if (!isset($group[$designation])) {
                     $group[$designation] = []; // Initialize designation array if not present
@@ -197,6 +224,9 @@ class TeamAdminController extends Controller
                 $groupDetails[] = [
                     'groupName' => $grpName,
                     'grouplevel' => $level,
+                    'maxAssignedMembers' => [
+                        $designation => $nosOfMemberAssigned, // Store designation-specific count
+                    ],
                     $designation => $newDesignationDetails,
                 ];
         }
@@ -204,7 +234,6 @@ class TeamAdminController extends Controller
         // Update the team's groupDetails and save
         $team->groupDetails = $groupDetails;
         $team->save();
-
 
         // Insert into member_histories
         foreach ($newDesignationDetails as $member) {
@@ -221,8 +250,8 @@ class TeamAdminController extends Controller
                 'groupName'=> $grpName,
                 'grouplevel' => $level,
                 'designation' => $designation,
-                'positionStartDate' => $tenureStart,
-                'positionEndDate' => $tenureEnd,
+                'positionStartDate' => (int) $tenureStart,
+                'positionEndDate' => (int) $tenureEnd,
             ];
         
             if ($memberHistory) {
@@ -258,6 +287,7 @@ class TeamAdminController extends Controller
                 $memberHistory->memberId = $memberId;
                 $memberHistory->memberName = $memberName;
                 $memberHistory->history = [$newHistory]; // Initialize with the first history entry
+                $memberHistory->adminId = $adminId; 
                 $memberHistory->save();
             }
         }
@@ -272,127 +302,144 @@ class TeamAdminController extends Controller
 
     public function allGroup($id)
     {
-        $team = Team::where('_id', $id)->first();
+        $adminId = Session::get('admin_id');
+
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
         $groups= $team->groupDetails;
         // echo "<pre>";
         // print_r($groups);die;
+        $teamName= $team->teamName;
 
-        return view('admin.allGroup', compact('groups','id'));
+        return view('admin.allGroup', compact('groups','id','teamName'));
     }
 
-    public function updateMemberStatus(Request $request) 
+    public function updateMemberStatus(Request $request)
     {
-        $teamId = $request->input('teamId');    // Team ID
-        $memberId = $request->input('memberId'); // Member ID
+        $adminId = Session::get('admin_id');
 
-        // Find the Team
-        $team = Team::find($teamId);
+        $teamId = $request->input('teamId');    // Team ID
+        $memberId = $request->input('memberId'); // Member ID to be removed
+
+        // Find the Team by the provided team ID
+        $team = Team::where('adminId','=',$adminId)->find($teamId);
         if (!$team) {
             return response()->json(['success' => false, 'message' => 'Team not found.']);
         }
 
         $groupLevel = null;
         $designation = null;
-        $isActiveFound = false; // Track if active member is found
-
+        // Retrieve the groupDetails from the team
         $groupDetails = $team->groupDetails;
 
-        foreach ($groupDetails as $group) {
-            $groupLevel = $group['grouplevel']; // Extract group level
-            foreach ($group as $role => $members) {
-                if (is_array($members)) { // Check for designations
-                    foreach ($members as $member) {
-                        if ($member['memberId'] === $memberId && $member['isActive'] === 'Yes') {
-                            $designation = $role; // Extract designation
-                            $isActiveFound = true;
-                            break 2; // Exit both loops once found
-                        }
-                    }
-                }
-            }
-            if ($isActiveFound) break; // Stop processing if active member is found
-        }
+        // Flag to check if the member was removed
+        $removed = false;
 
-        if (!$isActiveFound) {
-            return response()->json(['success' => false, 'message' => 'Active member not found.']);
-        }
-
-        // Find Member History
-        $historyRecord = MemberHistory::where('memberId', $memberId)->first();
-
-        if (!$historyRecord) {
-            return response()->json(['success' => false, 'message' => 'Member history not found.']);
-        }
-
-        // Update Position End Date in Member History
-        $historyUpdated = false; // Track if history is updated
-        $histories = $historyRecord->history;
-
-        foreach ($histories as &$history) {
-            if (
-                isset($history['teamId']) && $history['teamId'] === $teamId &&
-                isset($history['grouplevel']) && $history['grouplevel'] === $groupLevel &&
-                isset($history['designation']) && $history['designation'] === $designation
-            ) {
-                // Update the position end date to today
-                $history['positionEndDate'] = Carbon::now()->format('Ymd'); // Example: 20231223
-                $historyUpdated = true;
-                break;
-            }
-        }
-
-        if ($historyUpdated) {
-            $historyRecord->history = $histories; // Update history array
-            $historyRecord->save(); // Save changes
-        }
-
-        // Update Member Status to "No" in Team
-        $updated = false;
+        
+        // Loop through each group in groupDetails to find and remove the member
         foreach ($groupDetails as &$group) {
+            // Skip the 'maxAssignedMembers' field by using it but not doing anything with it
+            if (isset($group['maxAssignedMembers'])) {
+                // You don't need to process or update this field, so we just skip it
+                // No operation performed on maxAssignedMembers
+            }
+    
+            // Loop through each role within the group (e.g., senior developer, junior developer)
             foreach ($group as $role => &$members) {
-                if (is_array($members)) {
-                    foreach ($members as &$member) {
-                        if ($member['memberId'] === $memberId) {
-                            $member['isActive'] = 'No'; // Deactivate member
-                            $updated = true;
-                            break 2; // Exit both loops
+                // Ensure that maxAssignedMembers is not considered, so check for member arrays
+                if ($role !== 'maxAssignedMembers' && is_array($members)) {
+                    // Loop through the members and find the member with the given memberId
+                    foreach ($members as $index => &$member) {
+                        // Check if memberId matches and is active
+                        if ($member['memberId'] === $memberId && $member['isActive'] === 'Yes') {
+                            // Remove the member from the role's member list
+                            unset($members[$index]);
+                            $removed = true;
+                            break 3; // Exit all loops once the member is found and removed
                         }
                     }
                 }
             }
         }
 
-        if ($updated) {
-            $team->groupDetails = $groupDetails; // Save updated group details
-            $team->save();
+        // If the member was successfully removed, update and save the team
+        if ($removed) {
+            $team->groupDetails = $groupDetails; // Update the group details with the modified list
+            $team->save(); // Save the changes to the team model
 
-            return response()->json(['success' => true, 'message' => 'Member status updated successfully.']);
+            // Now, handle MemberHistory
+        $historyRecord = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)->first();
+        if ($historyRecord) {
+            // Update the positionEndDate for the history record
+            $histories = $historyRecord->history;
+            $historyUpdated = false;
+
+            foreach ($histories as &$history) {
+                if (isset($history['teamId']) && $history['teamId'] === $teamId) {
+                    // Update the positionEndDate
+                    $history['positionEndDate'] = (int) Carbon::now()->format('Ymd'); // Set to today's date
+                    $historyUpdated = true;
+                    break; // Exit the loop once the record is updated
+                }
+            }
+
+            if ($historyUpdated) {
+                $historyRecord->history = $histories;
+                $historyRecord->save(); // Save the changes to the MemberHistory
+            }
         }
 
-        return response()->json(['success' => false, 'message' => 'Failed to update member status.']);
+        return response()->json(['success' => true, 'message' => 'Member removed successfully and history updated.']);
+        }
+
+        // If no member was found or removed, return a failure response
+        return response()->json(['success' => false, 'message' => 'Member not found or already inactive.']);
     }
 
     public function getGroups(Request $request)
     {
-        $team = Team::find($request->teamId); // Fetch team by ID
+        $adminId = Session::get('admin_id');
+
+        $team = Team::where('adminId','=',$adminId)->find($request->teamId); // Fetch team by ID
+        $memberId = $request->memberId; // Member ID
+        $currentDesignation = $request->currentDesignation; // Current designation of the person
 
         if (!$team) {
             return response()->json(['error' => 'Team not found'], 404);
         }
 
-        $groups = collect($team->groupDetails)->map(function ($group) {
-            $designations = [];
-            foreach ($group as $key => $value) {
-                // Check if key is a designation (e.g., 'Junior Developer', 'Senior Designer')
-                if (is_array($value)) {
-                    $designations[] = $key;
+        // Fetch member history
+        $memberHistory = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)->first();
+
+        $excludedDesignations = [];
+        if ($memberHistory) {
+            foreach ($memberHistory->history as $history) {
+                // Match by both teamId and group level
+                if ($history['teamId'] === $request->teamId) {
+                    $excludedDesignations[$history['grouplevel']][] = $history['designation'];
                 }
             }
-    
+        }
+
+        // Process groups and exclude designations based on member history
+        $groups = collect($team->groupDetails)->map(function ($group) use ($currentDesignation, $excludedDesignations) {
+            $designations = [];
+
+            foreach ($group['maxAssignedMembers'] as $designation => $maxCount) {
+                $assignedCount = count($group[$designation]);
+
+                // Exclude designations if already held in history for this level or matches the current designation
+                $groupLevel = $group['grouplevel'];
+                if ($assignedCount < $maxCount 
+                    && (!isset($excludedDesignations[$groupLevel]) || !in_array($designation, $excludedDesignations[$groupLevel]))
+                    && $designation !== $currentDesignation) {
+                    $designations[] = $designation;
+                }
+            }
+
             return [
                 'groupName' => $group['groupName'],
                 'grouplevel' => $group['grouplevel'],
-                'designations' => $designations // Collect all designations
+                'designations' => $designations // Collect eligible designations
             ];
         });
 
@@ -401,17 +448,17 @@ class TeamAdminController extends Controller
 
     public function reassignMember(Request $request)
     {
-        //  print_r($request->all());die;
-        $teamId = $request->teamId;
-        $memberId = $request->memberId;
-        $groupLevel = $request->groupLevel;
-        $designation = $request->designation;
-        $name = $request->name;
-        $groupName = $request->groupName;
-        //  print_r($designation);die;
+        $adminId = Session::get('admin_id');
+
+        $teamId = $request->teamId; // Team ID
+        $memberId = $request->memberId; // Member ID
+        $groupLevel = $request->groupLevel; // New group level
+        $designation = $request->designation; // New designation
+        $name = $request->name; // Member name
+        $groupName = $request->groupName; // New group name
 
         // Find the team by ID
-        $team = Team::find($teamId);
+        $team = Team::where('adminId','=',$adminId)->find($teamId);
         if (!$team) {
             return response()->json(['error' => 'Team not found'], 404);
         }
@@ -419,80 +466,84 @@ class TeamAdminController extends Controller
         $tenure = $team->tenure;
         $endDate = $team->endDate;
 
-        // Extract previous groupLevel and designation
+        // Extract the group details
+        $groupDetails = $team->groupDetails;
+
+        // Variables to store the previous assignment
         $previousGroupLevel = null;
         $previousDesignation = null;
         $previousGroupName = null;
 
-        // Extract the group details
-        $groupDetails = $team->groupDetails;
-
-        // Set previous isActive to 'No' in the current group
+        // Remove the member from the previous designation
         foreach ($groupDetails as &$group) {
             foreach ($group as $role => &$members) {
+                // Ignore maxAssignedMembers
+                if ($role === 'maxAssignedMembers') {
+                    continue;
+                }
+
+                // Find and remove the member from the previous group
                 if (is_array($members)) {
-                    foreach ($members as &$member) {
-                        if ($member['memberId'] === $memberId && $member['isActive'] === 'Yes') {
-                            $previousGroupLevel = $group['grouplevel']; // Previous level
-                            $previousDesignation = $role; // Previous designation (e.g., Junior Developer)
-                            $previousGroupName = $group['groupName'];
-                        }
+                    foreach ($members as $index => $member) {
                         if ($member['memberId'] === $memberId) {
-                            $member['isActive'] = 'No'; // Update previous status to 'No'
+                            $previousGroupLevel = $group['grouplevel']; // Store previous group level
+                            $previousDesignation = $role; // Store previous designation
+                            $previousGroupName = $group['groupName']; // Store previous group name
+                            unset($members[$index]); // Remove member
                         }
                     }
+                    // Re-index array after removing the member
+                    $members = array_values($members);
                 }
             }
         }
 
+        // Add the member to the new designation
         foreach ($groupDetails as &$group) {
             if ($group['grouplevel'] === $groupLevel) {
                 $group[$designation][] = [
                     'memberId' => $memberId,
-                    'name' => $name, 
-                    'isActive' => 'Yes', 
+                    'name' => $name,
+                    'isActive' => 'Yes', // New assignment
                 ];
             }
         }
 
-        // Update the team with the modified group details
+        // Update the team with modified group details
         $team->groupDetails = $groupDetails;
         $team->save();
 
-        // Get today's date
-        $today = Carbon::now()->format('Ymd'); // Format: YYYYMMDD
+        // Update the MemberHistory
+        $today = Carbon::now()->format('Ymd'); // Current date
+        $memberHistory = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)->first();
 
-        // Find the member history by memberId
-        $memberHistory = MemberHistory::where('memberId', $memberId)->first();
-        
         if ($memberHistory) {
-            $history = $memberHistory->history; // Get history array
-            // print_r($history);die;
+            $history = $memberHistory->history;
 
-            // Update existing entry's positionEndDate
+            // Update positionEndDate for the previous entry
             foreach ($history as &$entry) {
                 if (
                     $entry['teamId'] === $teamId &&
-                    $entry['grouplevel'] === $previousGroupLevel && // Use previous group level
-                    $entry['designation'] === $previousDesignation // Use previous designation
+                    $entry['grouplevel'] === $previousGroupLevel &&
+                    $entry['designation'] === $previousDesignation
                 ) {
-                    $entry['positionEndDate'] = $today; // Close previous entry
+                    $entry['positionEndDate'] = (int) $today; // Close the previous position
                 }
             }
 
-            // Add a new entry inside the history array
+            // Add a new entry for the reassignment
             $history[] = [
                 'teamId' => $teamId,
                 'tenure' => $tenure,
                 'groupName' => $groupName,
                 'grouplevel' => $groupLevel,
                 'designation' => $designation,
-                'positionStartDate' => $today,
-                'positionEndDate' => (string) $endDate, // No end date yet
+                'positionStartDate' => (int) $today,
+                'positionEndDate' => $endDate, // Keep the original end date
             ];
 
-            // Update the member history
-            $memberHistory->history = $history; // Save the modified history
+            // Save the updated history
+            $memberHistory->history = $history;
             $memberHistory->save();
         }
 
@@ -501,14 +552,17 @@ class TeamAdminController extends Controller
 
     public function assignNewMembers($id, Request $request)
     {
-        
+        $adminId = Session::get('admin_id');
+
         $groupName = $request->groupName;
         $grouplevel = $request->grouplevel;
         $desg = $request->designation;
-        // print_r($designation);die;
+        $maxAssignedMembers = $request->maxAssignedMembers;
+        $alreadyAssignedCount=$request->alreadyAssignedMembers;
+        // print_r($alreadyAssignedCount);die;
 
-        $members = Member::where('isDeleted', '!=', true)->orderBy('Name', 'asc')->get();
-        $team = Team::where('_id', $id)->first();
+        $members = Member::where('adminId','=',$adminId)->where('isDeleted', '!=', true)->orderBy('Name', 'asc')->get();
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
         $assignedMemberIds = [];
 
         if (!empty($team->groupDetails)) 
@@ -532,63 +586,94 @@ class TeamAdminController extends Controller
             }
         }
 
-        return view('admin.groupAssignNewMembers', compact('members', 'team', 'id', 'assignedMemberIds','groupName', 'grouplevel', 'desg'));
+        // Fetch previously assigned members from memberHistory
+        $historyAssignedMemberIds = MemberHistory::where('history', 'elemMatch', [
+            'teamId' => $id,
+            'grouplevel' => $grouplevel,
+            'designation' => $desg
+        ])->pluck('memberId')->toArray();
+
+        // print_r($historyAssignedMemberIds);die;
+
+        // Merge both arrays and remove duplicates
+        $disabledMemberIds = array_unique(array_merge($assignedMemberIds, $historyAssignedMemberIds));
+
+        return view('admin.groupAssignNewMembers', compact('members', 'team', 'id', 'assignedMemberIds','groupName', 'grouplevel', 'desg','maxAssignedMembers', 'alreadyAssignedCount', 'disabledMemberIds'));
 
     }
 
-    public function downloadGroups($id) 
+    public function downloadGroups($id)
     {
+        $adminId = Session::get('admin_id');
+
         try {
             // Fetch team and groups
-            $team = Team::where('_id', $id)->first();
-    
+            $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
+
             if (!$team) {
                 return redirect()->back()->with('error', 'Team not found!');
             }
-    
+
             $groups = $team->groupDetails;
-    
+
             // Create Spreadsheet
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
-    
+
             // Set Header Row
             $sheet->setCellValue('A1', 'Group Name');
             $sheet->setCellValue('B1', 'Group Level');
             $sheet->setCellValue('C1', 'Designation');
             $sheet->setCellValue('D1', 'Assigned Members');
-    
+            $sheet->setCellValue('E1', 'Mobile');
+
             // Fill Data
             $row = 2; // Start from 2nd row
             foreach ($groups as $group) {
-                foreach ($group as $designation => $members) {
-                    if (is_iterable($members)) {
-                        $sheet->setCellValue('A' . $row, $group['groupName']);
-                        $sheet->setCellValue('B' . $row, $group['grouplevel']);
+                $groupName = $group['groupName'];
+                $groupLevel = $group['grouplevel'];
+
+                foreach ($group['maxAssignedMembers'] as $designation => $maxCount) {
+                    // Check if designation key exists in the group
+                    $members = isset($group[$designation]) ? $group[$designation] : [];
+
+                    // Filter active members
+                    $activeMembers = array_filter($members, function ($member) {
+                        return $member['isActive'] === "Yes";
+                    });
+
+                    $filledSlots = 0;
+
+                    // Write members
+                    foreach ($activeMembers as $member) {
+                        $memberDetails = Member::where('_id', $member['memberId'])->first(); // Fetch member details
+                        $mobile = $memberDetails ? $memberDetails->Mobile : ''; // Get mobile or set to blank if not found
+
+
+                        $sheet->setCellValue('A' . $row, $groupName);
+                        $sheet->setCellValue('B' . $row, $groupLevel);
                         $sheet->setCellValue('C' . $row, ucfirst($designation));
-                        foreach ($members as $member) {
-                            // dd($member); 
-                        
-                            // $assignedMembers = collect($members)
-                            //     ->where('isActive', 'Yes') // Filter active members
-                            //     ->pluck('name') // Get member names
-                            //     ->implode(', '); // Separate names with commas
-        
-                            // // Write Data
-                            if($member['isActive']==="Yes"){
-                                $sheet->setCellValue('D' . $row, $member['name']);
-            
-                                $row++;
-                            }
-                        }
+                        $sheet->setCellValue('D' . $row, $member['name']);
+                        $sheet->setCellValue('E' . $row, $mobile);
+                        $row++;
+                        $filledSlots++;
+                    }
+
+                    // Fill empty rows for unfilled slots
+                    while ($filledSlots < $maxCount) {
+                        $sheet->setCellValue('A' . $row, $groupName);
+                        $sheet->setCellValue('B' . $row, $groupLevel);
+                        $sheet->setCellValue('C' . $row, ucfirst($designation));
+                        $sheet->setCellValue('D' . $row, '');
+                        $row++;
+                        $filledSlots++;
                     }
                 }
             }
-    
-            // Generate Excel File
-            $fileName = 'Groups_' . $team->teamName .'.xlsx';
+
+            $fileName = 'Groups_' . $team->teamName . '.xlsx';
             $writer = new Xlsx($spreadsheet);
-    
+
             // Streamed Response
             return new StreamedResponse(
                 function () use ($writer) {
@@ -601,7 +686,6 @@ class TeamAdminController extends Controller
                     'Cache-Control' => 'max-age=0',
                 ]
             );
-    
         } catch (WriterException $e) {
             return redirect()->back()->with('error', 'Error creating Excel file!');
         } catch (\Exception $e) {
@@ -611,13 +695,17 @@ class TeamAdminController extends Controller
 
     public function memberPositionDetails()
     {
-        $memberHistory=MemberHistory::paginate(20);
+        $adminId = Session::get('admin_id');
+
+        $memberHistory=MemberHistory::where('adminId','=',$adminId)->paginate(20);
         return view('admin.userHistoryDetails', compact('memberHistory'));
     }
 
     public function downloadPositionHistory()
     {
-        $members = MemberHistory::all(); 
+        $adminId = Session::get('admin_id');
+
+        $members = MemberHistory::where('adminId','=',$adminId)->get(); 
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -689,5 +777,255 @@ class TeamAdminController extends Controller
             ]
         );
     }
+
+    public function importMembersGroupPage($id)
+    {
+        $adminId = Session::get('admin_id');
+
+        // Fetch team details for context (optional)
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
+
+        if (!$team) {
+            return redirect()->back()->with('error', 'Team not found!');
+        }
+
+        return view('admin.importGroupMembers', compact('team', 'id'));
+    }
+
+    public function importGroups(Request $request, $id)
+    {
+        $adminId = Session::get('admin_id');
+        // echo $adminId;die;
+
+        try {
+            $file = $request->file('file');
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true); // Convert sheet to array
+        
+            // Fetch the team
+            $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
+        
+            if (!$team) {
+                return redirect()->back()->with('error', 'Team not found!');
+            }
+        
+            $groupDetails = is_array($team->groupDetails) ? $team->groupDetails : json_decode($team->groupDetails, true);
+        
+            // Process rows (skip header row)
+            foreach ($rows as $index => $row) {
+                if ($index == 1) continue; // Skip header row
+
+                $mobile = trim($row['E']);
+                if (!$mobile) continue; // Skip rows without a mobile number
+
+                $member = Member::where('Mobile', (int)$mobile)->orWhere('Mobile', (string)$mobile)->where('adminId','=',$adminId)->first();
+                if (!$member) {
+                    continue; // Skip if member not found
+                }
+
+                $memberId = $member->_id;
+                $fullName = $member->Name 
+                    . ($member->Middle_Name !== "" && $member->Middle_Name !== null ? ' ' . $member->Middle_Name : '') 
+                    . ($member->Surname !== "" && $member->Surname !== null ? ' ' . $member->Surname : '');
+                $groupName = trim($row['A']);
+                $groupLevel = trim($row['B']);
+                $designation = strtolower(trim($row['C']));
+
+                if (empty($groupName) || empty($groupLevel) || empty($designation)) {
+                    continue;
+                }
+
+                $groupIndex = null;
+                foreach ($groupDetails as $key => $group) {
+                    if ($group['groupName'] == $groupName && $group['grouplevel'] == $groupLevel) {
+                        $groupIndex = $key;
+                        break;
+                    }
+                }
+
+                if ($groupIndex === null) continue;
+
+                $assignedMembers = $groupDetails[$groupIndex][$designation] ?? [];
+                $existingMemberIds = array_column($assignedMembers, 'memberId');
+                if (in_array($memberId, $existingMemberIds)) continue;
+
+                $maxAssigned = (int)$groupDetails[$groupIndex]['maxAssignedMembers'][$designation] ?? 0;
+                if (count($assignedMembers) >= $maxAssigned) continue;
+
+                // Check MemberHistory for the same team, group level, and designation
+                $existingHistory = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)
+                    ->where('history', 'elemMatch', [
+                        'teamId' => $team->_id,
+                        'grouplevel' => $groupLevel,
+                        'designation' => $designation,
+                    ])
+                    ->exists();
+
+                if ($existingHistory) {
+                    // Skip this member if they are already assigned in MemberHistory
+                    continue;
+                }
+
+                // At this point, we are sure the member is being assigned to the group
+                // Update MemberHistory here
+                $memberHistory = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)->first();
+
+                $newHistory = [
+                    'teamId' => $team->_id,
+                    'tenure' => $team->tenure,
+                    'groupName' => $groupName,
+                    'grouplevel' => $groupLevel,
+                    'designation' => $designation,
+                    'positionStartDate' => $team->startDate > (int) Carbon::now()->format('Ymd') ? $team->startDate : (int) Carbon::now()->format('Ymd'),
+                    'positionEndDate' => $team->endDate,
+                ];
+
+                if ($memberHistory) {
+                    // If member history exists, update the 'history' field by appending the new history
+                    $existingHistories = $memberHistory->history;
+
+                    // Check for duplicates (optional)
+                    $isDuplicate = false;
+                    foreach ($existingHistories as $history) {
+                        if (
+                            $history['grouplevel'] === $newHistory['grouplevel'] &&
+                            $history['tenure'] === $newHistory['tenure'] &&
+                            $history['designation'] === $newHistory['designation']
+                        ) {
+                            $isDuplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!$isDuplicate) {
+                        $existingHistories[] = $newHistory;
+                    }
+
+                    // Update the member history with the new 'history' array
+                    $memberHistory->history = $existingHistories;
+                    $memberHistory->save();
+                } else {
+                    // If member history doesn't exist, create a new record
+                    $memberHistory = new MemberHistory;
+                    $memberHistory->memberId = $memberId;
+                    $memberHistory->memberName = $fullName;
+                    $memberHistory->history = [$newHistory]; // Initialize with the first history entry
+                    $memberHistory->adminId = $adminId;
+                    $memberHistory->save();
+                }
+
+                // Add the member to the group
+                $newMemberEntry = [
+                    'memberId' => $memberId,
+                    'name' => $fullName,
+                    'isActive' => 'Yes',
+                ];
+
+                $groupDetails[$groupIndex][$designation][] = $newMemberEntry;
+            }
+
+            // Update groupDetails in the team document
+            $team->groupDetails = $groupDetails;
+            $team->save();
+
+        
+            return redirect()->back()->with('success', 'Group details updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
+        }
+        
+    }
+
+    public function teamClonePage($id)
+    {
+        $adminId = Session::get('admin_id');
+
+        $team = Team::where('adminId','=',$adminId)->where('_id', $id)->first();
+
+        return view('admin.teamClonePage', compact('id','team'));
+    }
+
+    public function cloneTeam(Request $request)
+    {
+        $adminId = Session::get('admin_id');
+
+        $originalTeamId = $request->input('teamId');
+        $originalTeam = Team::where('adminId','=',$adminId)->where('_id', $originalTeamId)->first();
+
+        if (!$originalTeam) {
+            return redirect()->back()->withErrors(['error' => 'Original team not found.']);
+        }
+
+        // Clone the groupDetails from the original team
+        $groupDetails = $originalTeam->groupDetails ?? [];
+
+        // Parse the tenure dates
+        $tenure = $request->input('dateRange');
+        $tenureDates = explode(' to ', $tenure);
+        $startDate = Carbon::createFromFormat('d-m-Y', $tenureDates[0])->format('Ymd');
+        $endDate = Carbon::createFromFormat('d-m-Y', $tenureDates[1])->format('Ymd');
+
+        // Create a new team
+        $newTeam = new Team();
+        $newTeam->teamName = $request->input('team') ?? '';
+        $newTeam->tenure = $tenure ?? '';
+        $newTeam->startDate = (int) $startDate ?? '';
+        $newTeam->endDate = (int) $endDate ?? '';
+        $newTeam->isActive = true;
+        $newTeam->clonedFromTeamId = $originalTeamId;
+        $newTeam->groupDetails = $groupDetails;
+        $newTeam->save();
+
+        // Update the memberHistory table
+        foreach ($groupDetails as $group) {
+            foreach ($group as $designation => $members) {
+                // Skip non-member arrays like `maxAssignedMembers`
+                if (!is_array($members)) {
+                    continue;
+                }
+
+                foreach ($members as $member) {
+                    $memberId = $member['memberId'] ?? null;
+                    $memberName = $member['name'] ?? null;
+
+                    if ($memberId) {
+                        // Fetch or create member history
+                        $memberHistory = MemberHistory::where('adminId','=',$adminId)->where('memberId', $memberId)->first();
+
+                        if (!$memberHistory) {
+                            // If no record exists, create a new one
+                            $memberHistory = new MemberHistory();
+                            $memberHistory->memberId = $memberId;
+                            $memberHistory->memberName = $memberName;
+                            $memberHistory->history = []; // Initialize history as an empty array
+                            $memberHistory->adminId = $adminId;
+                        }
+
+                        // Add the new history entry
+                        $existingHistory = $memberHistory->history ?? [];
+                        $newHistory = [
+                            'teamId' => (string) $newTeam->_id,
+                            'tenure' => $tenure,
+                            'groupName' => $group['groupName'] ?? '',
+                            'grouplevel' => $group['grouplevel'] ?? '',
+                            'designation' => $designation,
+                            'positionStartDate' => (int) $startDate,
+                            'positionEndDate' => (int) $endDate,
+                        ];
+                        $existingHistory[] = $newHistory;
+
+                        // Reassign and save
+                        $memberHistory->history = $existingHistory;
+                        $memberHistory->save();
+                    }
+                }
+            }
+        }
+
+        return redirect()->route('admin.allTeam')->with('success', 'Team cloned successfully, and member history updated.');
+    }
+
+
 
 }

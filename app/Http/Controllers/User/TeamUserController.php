@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\User;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
 use App\Models\MemberHistory;
@@ -16,9 +16,10 @@ class TeamUserController extends Controller
         // Retrieve the first matching record based on memberId
         $member = MemberHistory::where('memberId', $userId)->first();
         $memberName= $member ? $member['memberName'] : null;
+        
 
         $memberHistory = $member ? $member['history'] : [];
-
+        // print_r($memberHistory);die;
         $filteredHistory = [];
         $today = date('Ymd'); 
 

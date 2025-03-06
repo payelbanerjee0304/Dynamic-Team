@@ -57,7 +57,7 @@
                   <div class="icon_box">
                     <img src="{{asset('images/menu3.png')}}" alt="nav_icon1" />
                   </div>
-                  <span class="icon_text"> Member History </span>
+                  <span class="icon_text"> Members History </span>
                 </a>
               </li>
 
@@ -77,12 +77,12 @@
                   <span class="icon_text">Event </span>
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="eventDropdown">
-                  <li><a class="dropdown-item" href="#">Action 1</a></li>
-                  <li><a class="dropdown-item" href="#">Action 2</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.eventCreate') }}">Create Event</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.eventListing') }}">All Events</a></li>
                 </ul>
               </li>
               <li class="nav-item">
-                <a href="{{route('admin.seeAllBirthdays')}}" class="nav-link">
+                <a href="{{ route('admin.seeAllBirthdays') }}" class="nav-link">
                   <div class="icon_box">
                     <img src="{{asset('images/menu5.png')}}" alt="nav_icon1" />
                   </div>
@@ -123,9 +123,14 @@
       </div>
       <div class="logo_area">
         <div class="nav_btm_logo">
-          <a href="index.html"
-            {{-- ><img src="{{asset('images/sidebar_logo.png')}}" alt="logo" --}}
+          <a href="{{route('allMember')}}"
+            ><img src="{{asset('images/sidebar_logo.png')}}" alt="logo"
           /></a>
+          {{-- @php
+              $adminId = Session::get('admin_id');
+              $admin = $adminId ? App\Models\Admin::where('_id', $adminId)->first() : null;
+          @endphp
+          <img src="{{$admin->headerLogo}}" alt="logo"/> --}}
         </div>
       </div>
     </div>

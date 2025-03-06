@@ -20,6 +20,8 @@ class NewsAdminController extends Controller
 
     public function insertNews(Request $request)
     {
+        $adminId = Session::get('admin_id');
+
         $formData = $request->all();
 
 
@@ -39,35 +41,35 @@ class NewsAdminController extends Controller
         $imageName = time() . "_" . $logoFileName;
 
         // Absolute path to the upload location
-        $uploadLocation = public_path('newsBanner'); 
+        // $uploadLocation = public_path('newsBanner'); 
 
-        // // S3 bucket folder
-        // $s3BucketFolder = 'southjstimages';
+        // S3 bucket folder
+        $s3BucketFolder = 'southjstimages';
 
-        // // Full path in the S3 bucket
-        // $s3FilePath = $s3BucketFolder . '/' . $imageName;
+        // Full path in the S3 bucket
+        $s3FilePath = $s3BucketFolder . '/' . $imageName;
 
-        // // Upload the file to S3
-        // $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
+        // Upload the file to S3
+        $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
 
         // Ensure the directory exists
-        if (!file_exists($uploadLocation)) {
-            mkdir($uploadLocation, 0755, true);
-        }
+        // if (!file_exists($uploadLocation)) {
+        //     mkdir($uploadLocation, 0755, true);
+        // }
 
         // // Full image path
-        $imagePath = $uploadLocation . '/' . $imageName;
+        // $imagePath = $uploadLocation . '/' . $imageName;
 
         // // Save the image
-        $isSaved = file_put_contents($imagePath, $decodedImage);
+        // $isSaved = file_put_contents($imagePath, $decodedImage);
 
-        if ($isSaved) {
-            $imageUrl = asset('newsBanner/' . $imageName); // Public URL
-            $news->image = $imageUrl; // Save the public path in the database
+        if ($isUploaded) {
+            // $imageUrl = asset('newsBanner/' . $imageName); // Public URL
+            // $news->image = $imageUrl; // Save the public path in the database
 
             // Get the public URL of the file
-            // $imageUrl = Storage::disk('s3')->url($s3FilePath);
-            // $news->image = $imageUrl;
+            $imageUrl = Storage::disk('s3')->url($s3FilePath);
+            $news->image = $imageUrl;
         } else {
             return response()->json(['error' => 'Failed to save the image'], 500);
         }
@@ -89,24 +91,24 @@ class NewsAdminController extends Controller
 
                 // Generate a unique name for each cropped image
                 $croppedImageName = time() . "_" . $image['name'];
-                $croppedImagePath = $uploadLocation . '/' . $croppedImageName;
+                // $croppedImagePath = $uploadLocation . '/' . $croppedImageName;
 
                 // // Save the cropped image
-                $isCroppedSaved = file_put_contents($croppedImagePath, $decodedImage);
+                // $isCroppedSaved = file_put_contents($croppedImagePath, $decodedImage);
 
-                // // S3 bucket folder
-                // $s3BucketFolder = 'southjstimages';
+                // S3 bucket folder
+                $s3BucketFolder = 'southjstimages';
 
-                // // Full path in the S3 bucket
-                // $s3FilePath = $s3BucketFolder . '/' . $croppedImageName;
+                // Full path in the S3 bucket
+                $s3FilePath = $s3BucketFolder . '/' . $croppedImageName;
 
-                // // Upload the cropped image to S3
-                // $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
+                // Upload the cropped image to S3
+                $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
 
-                if ($isCroppedSaved) {
+                if ($isUploaded) {
                     // Store the public URL of each cropped image
-                    $imagePaths[] = asset('newsBanner/' . $croppedImageName);
-                    // $imagePaths[] = Storage::disk('s3')->url($s3FilePath);
+                    // $imagePaths[] = asset('newsBanner/' . $croppedImageName);
+                    $imagePaths[] = Storage::disk('s3')->url($s3FilePath);
                 }
             }
         }
@@ -117,6 +119,7 @@ class NewsAdminController extends Controller
         $news->startDate = (int) $formData['startDate'];
         $news->endDate = (int) $formData['endDate'];
         $news->isDeleted = false;
+        $news->adminId = $adminId;
 
         $news->save();
 
@@ -140,10 +143,12 @@ class NewsAdminController extends Controller
 
     public function allNews()
     {
+        $adminId = Session::get('admin_id');
+        
         $currentDate = (int) Carbon::now()->format('Ymd');
         // $ongoingNews = News::where('startDate', '<=', $currentDate)->where('endDate', '>=', $currentDate)->where('isDeleted', false)->orderBy('created_at', 'desc')->get();
-        $ongoingNews = News::where('endDate', '>=', $currentDate)->where('isDeleted', false)->orderBy('created_at', 'desc')->get();
-        $archivedNews = News::where('endDate', '<', $currentDate)->where('isDeleted', false)->orderBy('created_at', 'desc')->get();
+        $ongoingNews = News::where('adminId','=',$adminId)->where('endDate', '>=', $currentDate)->where('isDeleted', false)->orderBy('created_at', 'desc')->get();
+        $archivedNews = News::where('adminId','=',$adminId)->where('endDate', '<', $currentDate)->where('isDeleted', false)->orderBy('created_at', 'desc')->get();
         return view("admin.allNews", compact('ongoingNews', 'archivedNews'));
     }
 
@@ -153,7 +158,7 @@ class NewsAdminController extends Controller
 
         $adminId = Session::get('admin_id');
 
-        $deleteNews = News::where(['_id' => $newsId])->update(['isDeleted' => true]);
+        $deleteNews = News::where('adminId','=',$adminId)->where(['_id' => $newsId])->update(['isDeleted' => true]);
 
         // ActivityLogHelper::log($adminId, 'News Delete', 'Deleted a News with ID ' . $newsId);
 
@@ -162,7 +167,9 @@ class NewsAdminController extends Controller
 
     public function editNews($newsId)
     {
-        $newsDetails = News::where('_id', $newsId)->first();
+        $adminId = Session::get('admin_id');
+        
+        $newsDetails = News::where('adminId','=',$adminId)->where('_id', $newsId)->first();
         return view('admin.editNewsView', compact('newsDetails', 'newsId'));
     }
 
@@ -176,7 +183,7 @@ class NewsAdminController extends Controller
 
         $newsId = $formData['newsId'];
 
-        $news = News::where('_id', $newsId)->first();
+        $news = News::where('adminId','=',$adminId)->where('_id', $newsId)->first();
         $news->title = $formData['newsTitle'];
         $news->content = $formData['newsContent'];
 
@@ -196,36 +203,36 @@ class NewsAdminController extends Controller
 
             $imageName = time() . "_" . $logoFileName;
 
-            // Absolute path to the upload location
-            $uploadLocation = public_path('newsBanner'); // Resolves to /var/www/html/public/images
+            // // Absolute path to the upload location
+            // $uploadLocation = public_path('newsBanner'); // Resolves to /var/www/html/public/images
 
-            // Ensure the directory exists
-            if (!file_exists($uploadLocation)) {
-                mkdir($uploadLocation, 0755, true);
-            }
+            // // Ensure the directory exists
+            // if (!file_exists($uploadLocation)) {
+            //     mkdir($uploadLocation, 0755, true);
+            // }
 
-            // Full image path
-            $imagePath = $uploadLocation . '/' . $imageName;
+            // // Full image path
+            // $imagePath = $uploadLocation . '/' . $imageName;
 
-            // Save the image
-            $isSaved = file_put_contents($imagePath, $decodedImage);
+            // // Save the image
+            // $isSaved = file_put_contents($imagePath, $decodedImage);
 
-            // // S3 bucket folder
-            // $s3BucketFolder = 'southjstimages';
+            // S3 bucket folder
+            $s3BucketFolder = 'southjstimages';
 
-            // // Full path in the S3 bucket
-            // $s3FilePath = $s3BucketFolder . '/' . $imageName;
+            // Full path in the S3 bucket
+            $s3FilePath = $s3BucketFolder . '/' . $imageName;
 
-            // // Upload the file to S3
-            // $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
+            // Upload the file to S3
+            $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
 
-            if ($isSaved) {
-                $imageUrl = asset('newsBanner/' . $imageName); // Public URL
-                $news->image = $imageUrl; // Save the public path in the database
+            if ($isUploaded) {
+                // $imageUrl = asset('newsBanner/' . $imageName); // Public URL
+                // $news->image = $imageUrl; // Save the public path in the database
 
                 // Get the public URL of the file
-                // $imageUrl = Storage::disk('s3')->url($s3FilePath);
-                // $news->image = $imageUrl;
+                $imageUrl = Storage::disk('s3')->url($s3FilePath);
+                $news->image = $imageUrl;
             } else {
                 return response()->json(['error' => 'Failed to save the image'], 500);
             }
@@ -249,24 +256,24 @@ class NewsAdminController extends Controller
 
                 // Generate a unique name for each cropped image
                 $croppedImageName = time() . "_" . $image['name'];
-                $croppedImagePath = $uploadLocation . '/' . $croppedImageName;
+                // $croppedImagePath = $uploadLocation . '/' . $croppedImageName;
 
-                // Save the cropped image
-                $isCroppedSaved = file_put_contents($croppedImagePath, $decodedImage);
+                // // Save the cropped image
+                // $isCroppedSaved = file_put_contents($croppedImagePath, $decodedImage);
 
-                // // S3 bucket folder
-                // $s3BucketFolder = 'southjstimages';
+                // S3 bucket folder
+                $s3BucketFolder = 'southjstimages';
 
-                // // Full path in the S3 bucket
-                // $s3FilePath = $s3BucketFolder . '/' . $croppedImageName;
+                // Full path in the S3 bucket
+                $s3FilePath = $s3BucketFolder . '/' . $croppedImageName;
 
-                // // Upload the cropped image to S3
-                // $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
+                // Upload the cropped image to S3
+                $isUploaded = Storage::disk('s3')->put($s3FilePath, $decodedImage);
 
-                if ($isCroppedSaved) {
+                if ($isUploaded) {
                     // Store the public URL of each cropped image
-                    $imagePaths[] = asset('newsBanner/' . $croppedImageName);
-                    // $newImagePaths[] = Storage::disk('s3')->url($s3FilePath);
+                    // $imagePaths[] = asset('newsBanner/' . $croppedImageName);
+                    $newImagePaths[] = Storage::disk('s3')->url($s3FilePath);
                 }
             }
         }
@@ -302,9 +309,11 @@ class NewsAdminController extends Controller
 
     public function newsDetails($newsId)
     {
+        $adminId = Session::get('admin_id');
+        
         $currentDate = (int) Carbon::now()->format('Ymd');
 
-        $news = News::where(['_id' => $newsId])->first();
+        $news = News::where('adminId','=',$adminId)->where(['_id' => $newsId])->first();
         $news['content'] = $this->processOembedTags($news['content']);
 
         return view('admin.newsDetails',  compact('news'));

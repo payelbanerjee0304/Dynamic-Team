@@ -42,6 +42,8 @@
                   <div class="f">
                   <h3>@if($member['isVerified'] === 'Yes')
                           <button class="mmbr_stt tick"><i class="fas fa-check"></i></button>
+                      @elseif($member['isVerified'] === 'reverified')
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12L9 17L20 6" stroke="red" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       @else
                           <button class="mmbr_stt cross"><i class="fas fa-times"></i></button>
                       @endif</h3>
@@ -63,11 +65,28 @@
                                   </a>
                                 </button>
                               </li>
+                              @if($member['isVerified']== "Yes")
+                              <li>
+                                  <form action="{{ route('admin.reverifyMember', ['id' => $member['_id']]) }}" method="GET">
+                                      <button type="submit" class="dpdn_btn_icns reverify">
+                                          Reverify
+                                      </button>
+                                  </form>
+                              </li>
+                              @endif
                             </ul>
                           </div>
                           <div class="cnct_icns new">
                             <button class="cnct_icns_btn sms" data-mobile="{{ $member['Mobile'] }}" data-id="{{ $member['_id'] }}"><i class="fas fa-sms"></i></button>
                             <button class="cnct_icns_btn whts" data-mobile="{{ $member['Mobile'] }}" data-id="{{ $member['_id'] }}" data-name="{{ $member['Name']}}" data-midname="{{ $member['Middle_Name']}}" data-surname="{{ $member['Surname'] }}"><i class="fab fa-whatsapp"></i></button>
+                            @if ($member['isVerified'] === 'Yes')
+                              <div class="tooltip-container" data-tooltip="Download PDF">
+                                <button class="cnct_icns_btn pdf" data-id="{{ $member['_id'] }}" data-name="{{ $member['Name']}}" data-midname="{{ $member['Middle_Name']}}" data-surname="{{ $member['Surname'] }}"><i class="fa-solid fa-download" style="color: red"></i></button>
+                              </div>
+                            @else
+                              {{-- <button class="cnct_icns_btn" data-id="{{ $member['_id'] }}"  style="color: white">B</button> --}}
+                              &nbsp;
+                            @endif
                           </div>
                   </div>
             </div>
@@ -173,7 +192,7 @@
             const wpsurname = $(this).data("surname");
 
             const fullName = `${wpname} ${wpmidname} ${wpsurname}`;
-            const message = `${fullName},\n\nKindly update your membership data & family details in the below `;
+            const message = `${fullName},\n\nKindly update your membership data & family details in the below link:\n\ntinyurl.com/southsaba\n\nSouth Sabha`;
             // Construct WhatsApp deep link
             const whatsappUrl = `https://wa.me/${mobileNumber}?text=${encodeURIComponent(message)}`;
 

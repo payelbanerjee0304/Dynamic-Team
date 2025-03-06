@@ -17,6 +17,7 @@ class DesignationAdminController extends Controller
     }
     public function insertNewDesignation(Request $request)
     {
+        $adminId = Session::get('admin_id');
         // echo "<pre>";
         // print_r($request->all());
         $formData = $request->all();
@@ -25,6 +26,7 @@ class DesignationAdminController extends Controller
 
         $designation->designation = $formData['dsg'] ?? "";
         $designation->hindi_designation = $formData['dsghindi'] ?? "";
+        $designation->adminId = $adminId;
 
         $designation->save();
 
@@ -33,13 +35,16 @@ class DesignationAdminController extends Controller
 
     public function allDesignation()
     {
-        $allDesignation = Designation::where('isDeleted', '!=',true)->orderBy('created_at', 'desc')->get();
+        $adminId = Session::get('admin_id');
+
+        $allDesignation = Designation::where('adminId','=',$adminId)->where('isDeleted', '!=',true)->orderBy('created_at', 'desc')->get();
         return view("admin.allDesignation", compact('allDesignation'));
     }
 
     public function deleteDesignation(Request $request)
     {
-        $designation = Designation::find($request->id);
+        $adminId = Session::get('admin_id');
+        $designation = Designation::where('adminId','=',$adminId)->find($request->id);
         if ($designation) {
             $designation->isDeleted = true;
             $designation->save();
@@ -51,7 +56,7 @@ class DesignationAdminController extends Controller
 
     public function editDesignation($id)
     {
-        $designation = Designation::where('_id', $id)->first();
+        $designation = Designation::where('adminId','=',$adminId)->where('_id', $id)->first();
         return view('admin.designationEdit', compact('designation'));
     }
 
@@ -60,7 +65,7 @@ class DesignationAdminController extends Controller
         $dsgId = $request->input('dsgId'); // Get memberId from the form data
 
         if ($dsgId) {
-            $designation = Designation::find($dsgId);
+            $designation = Designation::where('adminId','=',$adminId)->find($dsgId);
 
             if ($designation) {
 
@@ -79,11 +84,5 @@ class DesignationAdminController extends Controller
             return redirect()->back()->with('error', 'Unauthorized action.');
         }
     }
-    public function createNewTeam()
-    {
-        return view('admin.teamCreate');
-    }
-    public function insertTeam(){
-        
-    }
+    
 }
